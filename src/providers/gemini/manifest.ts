@@ -41,6 +41,7 @@ export const geminiManifest = {
   },
 
   textClient: async () => (await import('./textClient.js')).createTextClient,
+  textModel: GEMINI_TEXT_MODEL,
 } as const satisfies ProviderManifest
 
 /** Exported so the enhancer can name the model without importing the client. */

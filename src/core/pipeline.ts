@@ -15,6 +15,7 @@
 
 import { loadGenerationClient, requireKindSupport, requireProvider } from '../providers/registry.js'
 import { requireApiKey } from '../config/resolve.js'
+import { enhancePrompt } from './enhance.js'
 import { defaultStem, saveMedia } from './output.js'
 import type { GenerationRequest, GenerationResult, QualityPreset } from '../types/media.js'
 import type { Logger, ProviderManifest } from '../types/provider.js'
@@ -79,7 +80,22 @@ export async function generate(
 
   const client = await loadGenerationClient(provider, request.kind)
 
-  const media = await client.generate(request, {
+  // §5 — enhancement happens after the key is resolved (it needs one) and
+  // before generation. It never throws: a failed rewrite generates the
+  // original prompt instead.
+  const wantsEnhancement = request.enhancePrompt ?? config.enhancePrompt.value
+  const prompt = wantsEnhancement
+    ? await enhancePrompt(request, {
+        provider,
+        apiKey,
+        log,
+        ...(options.signal ? { signal: options.signal } : {}),
+      })
+    : request.prompt
+
+  const enhanced: GenerationRequest = prompt === request.prompt ? request : { ...request, prompt }
+
+  const media = await client.generate(enhanced, {
     apiKey,
     model,
     log,
@@ -101,7 +117,19 @@ export async function generate(
     provider: provider.id,
     model,
     mimeType: saved.mimeType,
-    ...(media.revisedPrompt === undefined ? {} : { revisedPrompt: media.revisedPrompt }),
+    // §2.3 carries the revised prompt where there is one. A provider's own
+    // rewrite wins; ours is reported when the provider offered none, so the
+    // caller can always see what was actually generated from.
+    ...revisedPrompt(media.revisedPrompt, request.prompt, prompt),
     ...(media.requestId === undefined ? {} : { requestId: media.requestId }),
   }
+}
+
+function revisedPrompt(
+  fromProvider: string | undefined,
+  original: string,
+  used: string,
+): { revisedPrompt?: string } {
+  if (fromProvider !== undefined) return { revisedPrompt: fromProvider }
+  return used === original ? {} : { revisedPrompt: used }
 }

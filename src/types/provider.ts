@@ -143,4 +143,11 @@ export interface ProviderManifest {
    * then skipped rather than demanding credentials for a second provider.
    */
   readonly textClient: (() => Promise<TextClientFactory>) | null
+
+  /**
+   * The model enhancement runs against. Named here rather than inside the
+   * client so §5 can be skipped without loading the client to ask.
+   * Undefined exactly when `textClient` is null.
+   */
+  readonly textModel?: string
 }

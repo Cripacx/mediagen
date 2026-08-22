@@ -26,6 +26,11 @@ const OPTIONS = {
   'output-name': { type: 'string' },
   'output-dir': { type: 'string' },
   quality: { type: 'string' },
+  'no-enhance': { type: 'boolean' },
+  purpose: { type: 'string' },
+  'maintain-character': { type: 'boolean' },
+  'blend-elements': { type: 'boolean' },
+  'real-world-accuracy': { type: 'boolean' },
   mark: { type: 'boolean' },
   'visible-label': { type: 'boolean' },
   json: { type: 'boolean' },
@@ -52,6 +57,11 @@ Options:
 ${durationRow}  --output-name <name>       Output file name; its extension may select the format
   --output-dir <dir>         Directory to save into (default: MEDIAGEN_OUTPUT_DIR)
   --quality <preset>         ${QUALITY_PRESETS.join(', ')}
+  --no-enhance               Send the prompt through unchanged
+  --purpose <text>           Intended use; steers how the prompt is expanded
+  --maintain-character       Keep a character's appearance consistent
+  --blend-elements           Compose several elements into one coherent scene
+  --real-world-accuracy      Prefer checkable detail over evocative language
   --mark                     Write the machine-readable AI-generated marker
   --visible-label            Composite a visible AI disclosure into the media
   --json                     Emit exactly one JSON object on stdout
@@ -135,6 +145,11 @@ function buildRequest(
     ...optionalString(values, 'output-dir', 'outputDir'),
     ...quality(values),
     ...duration(values, kind),
+    ...optionalString(values, 'purpose', 'purpose'),
+    ...(values['no-enhance'] === true ? { enhancePrompt: false } : {}),
+    ...(values['maintain-character'] === true ? { maintainCharacter: true } : {}),
+    ...(values['blend-elements'] === true ? { blendElements: true } : {}),
+    ...(values['real-world-accuracy'] === true ? { realWorldAccuracy: true } : {}),
     ...(values['mark'] === true ? { mark: true } : {}),
     ...(values['visible-label'] === true ? { visibleLabel: true } : {}),
   }

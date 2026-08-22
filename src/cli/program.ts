@@ -14,9 +14,8 @@
  */
 
 import { Command, CommanderError } from 'commander'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../core/errors.js'
+import { version } from '../core/version.js'
 import { PROVIDER_IDS } from '../providers/registry.js'
 import { buildConfigCommand } from './commands/config.js'
 import { buildDoctorCommand } from './commands/doctor.js'
@@ -26,20 +25,6 @@ import { buildModelsCommand } from './commands/models.js'
 import { reportError, type Outcome } from './output.js'
 
 export type { Outcome }
-
-function version(): string {
-  try {
-    const packagePath = fileURLToPath(new URL('../../package.json', import.meta.url))
-    const parsed: unknown = JSON.parse(readFileSync(packagePath, 'utf-8'))
-    if (typeof parsed === 'object' && parsed !== null) {
-      const value: unknown = (parsed as { version?: unknown }).version
-      if (typeof value === 'string') return value
-    }
-  } catch {
-    // A missing package.json is not worth failing a run over.
-  }
-  return '0.0.0'
-}
 
 export function buildProgram(outcome: Outcome): Command {
   const program = new Command()

@@ -1,0 +1,15 @@
+# Normalise line endings so a Windows checkout does not show the whole tree as
+# modified, and so formatters agree across platforms.
+* text=auto eol=lf
+
+# Binary assets must never be normalised.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.woff2 binary
+*.ico binary

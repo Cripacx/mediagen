@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    # Spec §12.2: every test must pass on Windows, macOS and Linux. Path
+    # assumptions and symlink permissions differ, so all three run on every
+    # change rather than Linux standing in for the others.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      # Spec §12.2: no circular dependencies, enforced rather than hoped for.
+      - run: npm run cycles
+      - run: npm test

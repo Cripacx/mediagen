@@ -160,35 +160,68 @@ npm goes before the registry because the registry stores metadata only: an
 entry published first would point at a version nobody can install. The Release
 comes last, so it never points at something that does not exist yet.
 
-### One-time setup
+### The first release
 
-Neither destination needs a stored secret — both authenticate over GitHub OIDC.
-
-- **npm**: publish `mediagen` once by hand (`npm publish --access public`), then
-  on npmjs.com open the package settings and add a **trusted publisher**:
-  repository `Cripacx/mediagen`, workflow `release.yml`. From then on the
-  workflow publishes without a token, and npm attaches provenance
-  automatically.
-- **MCP registry**: nothing to configure. `mcp-publisher login github-oidc`
-  authenticates from the workflow, and ownership is proved by `mcpName` in
-  `package.json` matching `name` in `server.json`.
-- **The skill**: nothing at all. `npx skills add` reads the repository, so
-  pushing is the release.
-
-### Release notes
-
-GitHub builds them from pull requests merged since the last tag, grouped by the
-labels in [.github/release.yml](.github/release.yml). Work pushed straight to
-main shows up only in the compare link at the bottom — if you want the notes to
-read well, merge through pull requests, even self-approved ones.
-
-### Doing it by hand
+The first one cannot be the button: npm configures trusted publishing on a
+package that already exists, so version one has to go out by hand. Everything
+after that is one click.
 
 ```bash
-node scripts/set-version.mjs patch   # or minor, major, or 1.2.3
-npm run verify
+gh repo create mediagen --public --source=. --push
+```
+
+```bash
+npm login
+```
+
+```bash
 npm publish --access public
-mcp-publisher login github && mcp-publisher publish
+```
+
+Then on npmjs.com open the package settings, add a **trusted publisher** —
+GitHub Actions, repository `Cripacx/mediagen`, workflow `release.yml` — and
+from then on the workflow publishes without a token, with provenance attached
+automatically.
+
+That leaves the registry entry. Do not install anything for it: run the Release
+workflow with **dry run** first to check it, then for real. It publishes to npm
+over OIDC and to the registry in the same run.
+
+### Publishing to the registry by hand
+
+Only needed if you want a registry entry without cutting a new version. It is a
+Go binary from the registry's releases, not an npm package:
+
+```bash
+curl -L https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_windows_amd64.tar.gz -o mcp-publisher.tar.gz
+```
+
+```bash
+tar -xzf mcp-publisher.tar.gz mcp-publisher.exe
+```
+
+```bash
+./mcp-publisher.exe login github
+```
+
+```bash
+./mcp-publisher.exe publish
+```
+
+Swap `windows_amd64` for `darwin_arm64` or `linux_amd64` as appropriate.
+
+### Cutting a version by hand
+
+```bash
+node scripts/set-version.mjs patch
+```
+
+```bash
+npm run verify
+```
+
+```bash
+npm publish --access public
 ```
 
 `node scripts/set-version.mjs --check` fails if the three version fields ever

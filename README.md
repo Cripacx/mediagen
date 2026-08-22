@@ -52,9 +52,9 @@ mediagen models          # what each provider would use, and why
 mediagen mark photo.png  # mark existing media as AI-generated
 ```
 
-Started with no subcommand, `mediagen` runs the MCP server on stdio, which is
-how MCP hosts spawn it. The agent skill in [skill/](skill/SKILL.md) drives the
-CLI.
+`mediagen mcp` runs the MCP server on stdio; that is the command to put in a
+host's configuration. The agent skill in
+[skills/mediagen/](skills/mediagen/SKILL.md) drives the CLI.
 
 `--json` puts exactly one object on stdout and nothing else; in human mode the
 saved path is the last line. Exit codes are `0` success, `2` invalid input,
@@ -71,7 +71,17 @@ mediagen doctor                            # what is configured, and does it wor
 mediagen config list                       # every value, and which layer it came from
 ```
 
-## Deviation from the specification
+## Deviations from the specification
+
+**§4.1, the zero-argument MCP server, is not implemented as written.**
+
+The specification says starting the binary with no subcommand must run the MCP
+server, "because that is how MCP hosts spawn it". Hosts spawn whatever `args`
+their configuration names, so nothing actually requires the zero-argument
+form — it is a convention, not a constraint, and honouring it literally means
+every script, CI job or agent shell that runs `mediagen` without arguments
+gets a process reading JSON-RPC forever that has to be killed. `mediagen mcp`
+is the explicit command, and bare `mediagen` prints help.
 
 **§5, prompt enhancement, is deliberately not implemented.**
 
@@ -90,6 +100,69 @@ exactly that prompt and a weaker image than §5 would have produced for them.
 Tests never read your config file or inherit your API keys; `test/setup.ts`
 enforces that and `src/core/__tests__/isolation.test.ts` fails if it stops
 working (§12.1).
+
+## Installing
+
+```bash
+npm install -g mediagen   # or use npx -y mediagen <command>
+mediagen init             # interactive setup
+```
+
+`npx -y mediagen <command>` needs no install.
+
+### As an MCP server
+
+```json
+{
+  "mcpServers": {
+    "mediagen": {
+      "command": "npx",
+      "args": ["-y", "mediagen", "mcp"],
+      "env": { "GEMINI_API_KEY": "..." }
+    }
+  }
+}
+```
+
+The key can equally come from the config file written by `mediagen init`, in
+which case `env` can be omitted entirely.
+
+### As an agent skill
+
+```bash
+npx skills add Cripacx/mediagen --skill mediagen
+```
+
+## Releasing
+
+Three channels, in this order — the last two both point at the first, so npm
+has to go first.
+
+**1. npm.** `prepublishOnly` runs the full verification, so a broken build
+cannot ship.
+
+```bash
+npm login
+npm publish --access public
+```
+
+**2. The MCP registry.** It hosts metadata only, which is why the package must
+exist first. Ownership is proved by `mcpName` in `package.json` matching
+`name` in `server.json`; a test keeps the two, and the version in three
+places, from drifting.
+
+```bash
+mcp-publisher login github
+mcp-publisher validate
+mcp-publisher publish
+```
+
+**3. The skill.** Nothing to publish — `npx skills add` reads the GitHub
+repository directly, so pushing is the release. The layout it looks for is
+`skills/<name>/SKILL.md`.
+
+Bump the version in `package.json` **and** `server.json` together; `npm test`
+fails if they disagree.
 
 ## Licence
 

@@ -8,6 +8,7 @@
  */
 
 import { ERROR_CODE, MediagenError } from '../core/errors.js'
+import { command } from '../core/invocation.js'
 import { PROVIDERS, findProvider, BUILT_IN_DEFAULT_PROVIDER } from '../providers/registry.js'
 import { CONFIG_DEFAULTS } from '../types/config.js'
 import { isQualityPreset } from '../types/media.js'
@@ -72,7 +73,7 @@ export function requireApiKey(config: ResolvedConfig, provider: ProviderManifest
       ERROR_CODE.CONFIG_ERROR,
       `No API key for ${provider.label}. Set ${envVar} to ${description}.`,
       {
-        hint: `Run: mediagen config set ${provider.id}${signupUrl ? ` — get a key at ${signupUrl}` : ''}`,
+        hint: `Run: ${command(`config set ${provider.id}`)}${signupUrl ? ` — get a key at ${signupUrl}` : ''}`,
       },
     )
   }
@@ -81,7 +82,7 @@ export function requireApiKey(config: ResolvedConfig, provider: ProviderManifest
     throw new MediagenError(
       ERROR_CODE.CONFIG_ERROR,
       `The ${provider.label} key from ${resolved.layer} is too short to be valid.`,
-      { hint: `Run: mediagen config set ${provider.id}` },
+      { hint: `Run: ${command(`config set ${provider.id}`)}` },
     )
   }
 

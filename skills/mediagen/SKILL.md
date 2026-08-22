@@ -9,20 +9,31 @@ Generate images and video from text prompts across several providers.
 
 ## How to call it
 
-Use the **CLI** with `--json`. Always `--json`: it puts exactly one object on
-stdout and nothing else, so you never have to parse prose.
+Use **`npx -y mediagen`** with `--json`. Always `--json`: it puts exactly one
+object on stdout and nothing else, so you never have to parse prose.
 
 ```bash
-mediagen image "<prompt>" --json
-mediagen video "<prompt>" --json
+npx -y mediagen image "<prompt>" --json
+npx -y mediagen video "<prompt>" --json
 ```
+
+`npx` needs no installation and runs an existing one if the user has it, so
+this is the right form either way — installing the skill does not install the
+CLI, and most users who have the skill will not have it on their PATH.
+
+**Always pass a subcommand.** With no arguments the tool prints its help and
+exits; it does nothing useful, but it will not hang.
+
+Do not run `mediagen init` yourself — it needs a terminal and refuses without
+one. It is something to ask the user to run.
+
+If you have no shell at all, the same pipeline is available over MCP as the
+`generate_media` tool, with `list_models` and `check_configuration` alongside
+it — a host spawns it with `npx -y mediagen mcp`. The CLI is the primary path;
+MCP is the fallback.
 
 Video takes minutes and only Gemini does it. Progress goes to stderr; the one
 JSON object still lands on stdout at the end.
-
-If you have no shell, the same pipeline is available over MCP as the
-`generate_media` tool, with `list_models` and `check_configuration` alongside
-it. The CLI is the primary path; MCP is the fallback.
 
 ## Write the prompt yourself
 
@@ -64,7 +75,7 @@ make the call, generate, and say what you assumed.
 
 ## Choosing a provider
 
-Run `mediagen models --json` to see what is configured and what each provider
+Run `npx -y mediagen models --json` to see what is configured and what each provider
 would use. As a starting point:
 
 | Task                                | Provider                                                      | Why                                                                      |
@@ -80,7 +91,7 @@ would use. As a starting point:
 only. It genuinely cannot do 16:9 — asking for one is rejected rather than
 silently served as 3:2. For anything wider than 3:2, use `gemini`.
 
-Do not guess model ids. `mediagen models --json` lists them, and an id absent
+Do not guess model ids. `npx -y mediagen models --json` lists them, and an id absent
 from the list is still sent to the provider rather than rejected — so a newly
 released model works before this skill knows about it.
 
@@ -88,7 +99,7 @@ released model works before this skill knows about it.
 
 ```
 --provider <name>       gemini, openai, kie
---model <id>            see: mediagen models
+--model <id>            see the models command
 --aspect-ratio <ratio>  1:1, 16:9, 9:16, … rejected by name if the model cannot
 --size <size>           1K, 2K, 4K
 --input <path>          edit or transform an existing image
@@ -111,7 +122,7 @@ duty for the provider of synthetic content.
 image. Suggest it when the image will be shown to an audience who might
 otherwise take it for a photograph.
 
-`mediagen mark <file...>` applies both to media that already exists.
+`npx -y mediagen mark <file...>` applies both to media that already exists.
 
 **Video cannot be marked yet.** Writing XMP into a video container is a
 different operation from writing it into a still, and this build does not do
@@ -152,7 +163,7 @@ next action.
 
 | `errorCode`                   | What to do                                                                                       |
 | ----------------------------- | ------------------------------------------------------------------------------------------------ |
-| `CONFIG_ERROR`                | **Tell the user to run `mediagen init` in their terminal.** See below.                           |
+| `CONFIG_ERROR`                | **Tell the user to run `npx -y mediagen init` in their terminal.** See below.                    |
 | `VALIDATION_ERROR`            | The message names the supported values. Fix the request and retry once.                          |
 | `CONTENT_BLOCKED`             | The provider declined the prompt. Rephrase, or suggest another provider. Do not retry unchanged. |
 | `API_ERROR` / `NETWORK_ERROR` | Retry once. If it persists, suggest another provider.                                            |
@@ -161,37 +172,37 @@ next action.
 
 ## Never ask for an API key
 
-On `CONFIG_ERROR`, tell the user to run `mediagen init` in their own terminal.
+On `CONFIG_ERROR`, tell the user to run `npx -y mediagen init` in their own terminal.
 
 **Do not ask the user to paste an API key into this conversation**, and do not
 offer to set one for them. Keys pasted into a chat end up in transcripts and
-logs. `mediagen init` prompts without echoing and stores the key with
-owner-only permissions; `echo "$KEY" | mediagen config set <provider> --stdin`
+logs. `npx -y mediagen init` prompts without echoing and stores the key with
+owner-only permissions; `echo "$KEY" | npx -y mediagen config set <provider> --stdin`
 is the scriptable equivalent. There is deliberately no flag that takes a key
 as an argument.
 
-`mediagen doctor` reports which providers are configured, which layer each key
+`npx -y mediagen doctor` reports which providers are configured, which layer each key
 came from, and whether it still works.
 
 ## Examples
 
 ```bash
 # A specific prompt beats a short one.
-mediagen image "A red steel bicycle leaning against a wet brick wall, seen from
+npx -y mediagen image "A red steel bicycle leaning against a wet brick wall, seen from
   across the street at eye level. Overcast afternoon light, no direct sun.
   Shallow depth of field, 50mm. Rain beading on the frame." --json
 
 # Wide banner, marked for publication.
-mediagen image "..." --aspect-ratio 21:9 --size 2K --mark --json
+npx -y mediagen image "..." --aspect-ratio 21:9 --size 2K --mark --json
 
 # Video: slow, and Gemini only.
-mediagen video "A marble rolling fast down a wooden track, continuous smooth
+npx -y mediagen video "A marble rolling fast down a wooden track, continuous smooth
   shot following it from the side, warm afternoon light" --duration 6 --json
 
 # Edit an existing image.
-mediagen image "Replace the sky with heavy storm clouds, keep the lighting on
+npx -y mediagen image "Replace the sky with heavy storm clouds, keep the lighting on
   the building consistent" --input ./photo.jpg --json
 
 # Find out what is available before choosing.
-mediagen models --json
+npx -y mediagen models --json
 ```

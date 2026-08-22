@@ -6,6 +6,7 @@
 
 import OpenAI from 'openai'
 import { ERROR_CODE, MediagenError } from '../../core/errors.js'
+import { command } from '../../core/invocation.js'
 
 export function createOpenAI(apiKey: string): OpenAI {
   return new OpenAI({ apiKey })
@@ -23,7 +24,7 @@ export function mapOpenAIError(error: unknown): never {
 
   if (status === 401) {
     throw new MediagenError(ERROR_CODE.CONFIG_ERROR, 'OpenAI rejected the API key.', {
-      hint: 'Run: mediagen config set openai',
+      hint: `Run: ${command('config set openai')}`,
       cause: error,
     })
   }

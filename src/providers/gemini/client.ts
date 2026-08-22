@@ -14,6 +14,7 @@
 
 import { GoogleGenAI } from '@google/genai'
 import { ERROR_CODE, MediagenError } from '../../core/errors.js'
+import { command } from '../../core/invocation.js'
 
 export function createGenAI(apiKey: string): GoogleGenAI {
   return new GoogleGenAI({ apiKey })
@@ -32,7 +33,7 @@ export function mapGeminiError(error: unknown): never {
 
   if (status === 401 || status === 403) {
     throw new MediagenError(ERROR_CODE.CONFIG_ERROR, 'Google rejected the API key.', {
-      hint: 'Run: mediagen config set gemini',
+      hint: `Run: ${command('config set gemini')}`,
       cause: error,
     })
   }

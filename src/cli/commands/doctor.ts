@@ -10,6 +10,7 @@
 
 import { Command } from 'commander'
 import { EXIT_CODE, type ExitCode } from '../../core/errors.js'
+import { command } from '../../core/invocation.js'
 import { configFilePath } from '../../config/file.js'
 import { LAYER_LABEL, maskSecret } from '../../config/layers.js'
 import { loadConfig } from '../../config/resolve.js'
@@ -68,7 +69,7 @@ async function report(offline: boolean, json: boolean): Promise<ExitCode> {
         configured: false,
         shadowed: [],
         status: 'missing',
-        fix: `mediagen config set ${provider.id}`,
+        fix: command(`config set ${provider.id}`),
       })
       continue
     }
@@ -93,7 +94,7 @@ async function report(offline: boolean, json: boolean): Promise<ExitCode> {
       ...base,
       status: verification.status,
       ...(verification.detail === undefined ? {} : { detail: verification.detail }),
-      ...(verification.status === 'rejected' ? { fix: `mediagen config set ${provider.id}` } : {}),
+      ...(verification.status === 'rejected' ? { fix: command(`config set ${provider.id}`) } : {}),
     })
   }
 

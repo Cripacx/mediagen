@@ -9,6 +9,7 @@
 
 import { Command } from 'commander'
 import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../../core/errors.js'
+import { command } from '../../core/invocation.js'
 import { readConfigFile, writeConfigFile } from '../../config/file.js'
 import { maskSecret } from '../../config/layers.js'
 import { verifyKey } from '../../config/verify.js'
@@ -31,7 +32,7 @@ Requires a terminal. To configure without one:
       if (!process.stdin.isTTY) {
         outcome.code = reportError(
           new MediagenError(ERROR_CODE.CONFIG_ERROR, 'init needs a terminal.', {
-            hint: 'Without one, use: echo "$KEY" | mediagen config set <provider> --stdin',
+            hint: `Without one, use: echo "$KEY" | ${command('config set <provider> --stdin')}`,
           }),
           false,
         )
@@ -103,14 +104,14 @@ async function wizard(): Promise<ExitCode> {
 
     if (verification.status === 'rejected') {
       writeDiagnostic(
-        `${provider.label} rejected that key, so it was not saved. Run \`mediagen config set ${provider.id}\` to try again.`,
+        `${provider.label} rejected that key, so it was not saved. Run \`${command(`config set ${provider.id}`)}\` to try again.`,
       )
       continue
     }
 
     if (verification.status === 'unreachable') {
       writeDiagnostic(
-        `Could not reach ${provider.label} to check the key; saving it anyway. Run \`mediagen doctor\` once you are online.`,
+        `Could not reach ${provider.label} to check the key; saving it anyway. Run \`${command('doctor')}\` once you are online.`,
       )
     } else if (verification.status === 'unverifiable') {
       writeDiagnostic(
@@ -143,7 +144,7 @@ async function wizard(): Promise<ExitCode> {
 
   writeDiagnostic('')
   writeDiagnostic(`Default provider: ${defaultProvider}`)
-  writeDiagnostic('Try it: mediagen image "a red bicycle in the rain"')
+  writeDiagnostic(`Try it: ${command('image "a red bicycle in the rain"')}`)
   writeLine(path)
 
   return EXIT_CODE.SUCCESS

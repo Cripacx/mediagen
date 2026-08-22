@@ -1,7 +1,7 @@
 {
   "name": "mediagen",
   "version": "0.1.0",
-  "description": "Generate images and video from text prompts across several providers, from a CLI, an MCP server, or an agent skill.",
+  "description": "Generate images and video from text prompts across Gemini, OpenAI and Kie AI \u2014 from a CLI, an MCP server, or an agent skill.",
   "type": "module",
   "engines": {
     "node": ">=20.11"
@@ -16,9 +16,10 @@
   },
   "files": [
     "dist",
-    "skill",
+    "skills",
     "README.md",
-    "SPEC.md"
+    "SPEC.md",
+    "server.json"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -32,7 +33,8 @@
     "verify": "npm run typecheck && npm run lint && npm run format:check && npm run cycles && npm test",
     "pretest": "npm run build",
     "sync:kie-models": "node scripts/sync-kie-models.mjs",
-    "check:kie-models": "node scripts/sync-kie-models.mjs --check"
+    "check:kie-models": "node scripts/sync-kie-models.mjs --check",
+    "prepublishOnly": "npm run verify"
   },
   "dependencies": {
     "@google/genai": "^2.18.0",
@@ -53,5 +55,28 @@
     "typescript-eslint": "^8.32.0",
     "vitest": "^3.1.3",
     "yaml": "^2.7.1"
-  }
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "image-generation",
+    "video-generation",
+    "ai",
+    "gemini",
+    "openai",
+    "kie",
+    "cli",
+    "agent-skill"
+  ],
+  "license": "MIT",
+  "author": "Christopher Leson",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cripacx/mediagen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Cripacx/mediagen/issues"
+  },
+  "homepage": "https://github.com/Cripacx/mediagen#readme",
+  "mcpName": "io.github.cripacx/mediagen"
 }

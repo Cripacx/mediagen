@@ -15,6 +15,7 @@
 
 import { Command, CommanderError } from 'commander'
 import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../core/errors.js'
+import { command } from '../core/invocation.js'
 import { version } from '../core/version.js'
 import { PROVIDER_IDS } from '../providers/registry.js'
 import { buildConfigCommand } from './commands/config.js'
@@ -43,8 +44,8 @@ API keys are never accepted as command arguments — they would land in shell
 history and in the process list. Use \`mediagen config set <provider>\`, which
 prompts without echoing, or pipe the key in with --stdin.
 
-Starting mediagen with no subcommand runs the MCP server on stdio, which is
-how MCP hosts spawn it.
+Run \`mediagen mcp\` to start the MCP server on stdio. That is the command an
+MCP host should be configured to spawn.
 
 Exit codes:
   0 success   2 invalid input   3 configuration   4 generation or I/O failure`,
@@ -66,6 +67,22 @@ Exit codes:
   program.addCommand(buildModelsCommand(outcome))
   program.addCommand(buildMarkCommand(outcome))
 
+  program
+    .command('mcp')
+    .description('Run the MCP server on stdio')
+    .exitOverride()
+    .addHelpText(
+      'after',
+      `
+This is what an MCP host spawns. It speaks JSON-RPC on stdin and stdout and
+runs until the host closes the connection, so there is nothing to see if you
+run it yourself.`,
+    )
+    .action(async () => {
+      const { startMcpServer } = await import('../mcp/server.js')
+      outcome.code = await startMcpServer()
+    })
+
   return program
 }
 
@@ -76,12 +93,26 @@ Exit codes:
  * `exitOverride` is set; both are successful outcomes, not failures.
  */
 export async function runProgram(argv: string[]): Promise<ExitCode> {
-  // §4.1: no subcommand means an MCP host spawned us. This is checked before
-  // commander sees the arguments, because commander's answer to "no arguments"
-  // is to print help.
+  // Deliberate deviation from §4.1, which says the binary with no subcommand
+  // must run the MCP server "because that is how MCP hosts spawn it".
+  //
+  // Hosts spawn whatever `args` their configuration names, so nothing actually
+  // requires the zero-argument form — it is a convention, not a constraint.
+  // Honouring it literally costs more than it is worth: every non-interactive
+  // caller that runs `mediagen` without arguments, which includes scripts, CI
+  // and agent shells, gets a process that reads JSON-RPC forever and has to be
+  // killed. A person typing it to see what the tool does gets the same.
+  //
+  // Detecting a TTY was tried and is not a reliable enough signal: plenty of
+  // non-host contexts have no TTY either, so the hang simply moved rather than
+  // going away.
+  //
+  // `mediagen mcp` is the explicit form, and the one host configurations
+  // should use. See the note in the README.
   if (argv.length === 0) {
-    const { startMcpServer } = await import('../mcp/server.js')
-    return await startMcpServer()
+    const outcome: Outcome = { code: EXIT_CODE.SUCCESS }
+    buildProgram(outcome).outputHelp()
+    return EXIT_CODE.SUCCESS
   }
 
   const outcome: Outcome = { code: EXIT_CODE.SUCCESS }
@@ -103,7 +134,7 @@ export async function runProgram(argv: string[]): Promise<ExitCode> {
       if (argv.includes('--json')) {
         return reportError(
           new MediagenError(ERROR_CODE.VALIDATION_ERROR, error.message, {
-            hint: 'Run: mediagen --help',
+            hint: `Run: ${command('--help')}`,
           }),
           true,
         )

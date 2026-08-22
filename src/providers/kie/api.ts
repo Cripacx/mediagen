@@ -17,6 +17,7 @@
  */
 
 import { ERROR_CODE, MediagenError } from '../../core/errors.js'
+import { command } from '../../core/invocation.js'
 
 const API_BASE = 'https://api.kie.ai'
 export const CREATE_TASK_PATH = '/api/v1/jobs/createTask'
@@ -100,7 +101,7 @@ export async function kieRequest<T>(
 function httpError(status: number, stage: string): MediagenError {
   if (status === 401 || status === 403) {
     return new MediagenError(ERROR_CODE.CONFIG_ERROR, 'Kie AI rejected the API key.', {
-      hint: 'Run: mediagen config set kie',
+      hint: `Run: ${command('config set kie')}`,
     })
   }
   if (status === 429) {
@@ -125,7 +126,7 @@ function httpError(status: number, stage: string): MediagenError {
 function envelopeError(code: number, message: string | undefined, stage: string): MediagenError {
   if (code === 401 || code === 403) {
     return new MediagenError(ERROR_CODE.CONFIG_ERROR, 'Kie AI rejected the API key.', {
-      hint: 'Run: mediagen config set kie',
+      hint: `Run: ${command('config set kie')}`,
       cause: message,
     })
   }

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.cripacx/mediagen",
+  "description": "Generate images and video from text prompts across Gemini, OpenAI and Kie AI.",
+  "repository": {
+    "url": "https://github.com/Cripacx/mediagen",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mediagen",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

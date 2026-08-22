@@ -10,6 +10,7 @@
 
 import { Command } from 'commander'
 import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../../core/errors.js'
+import { command } from '../../core/invocation.js'
 import { configFilePath, readConfigFile, writeConfigFile } from '../../config/file.js'
 import { LAYER_LABEL, loadConfigLayers, maskSecret } from '../../config/layers.js'
 import { loadConfig } from '../../config/resolve.js'
@@ -119,7 +120,7 @@ async function runSet(args: string[], fromStdin: boolean, json: boolean): Promis
   const [key, ...valueParts] = args
   if (key === undefined) {
     throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, 'config set needs a key.', {
-      hint: 'Run: mediagen config --help',
+      hint: `Run: ${command('config --help')}`,
     })
   }
 
@@ -133,7 +134,7 @@ async function runSet(args: string[], fromStdin: boolean, json: boolean): Promis
   const value = valueParts.join(' ').trim()
   if (value.length === 0) {
     throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `config set ${key} needs a value.`, {
-      hint: 'Run: mediagen config --help',
+      hint: `Run: ${command('config --help')}`,
     })
   }
 
@@ -176,7 +177,7 @@ function applySetting(file: ConfigFile, key: string, value: string): ConfigFile 
   }
 
   throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown config key "${key}".`, {
-    hint: 'Run: mediagen config --help',
+    hint: `Run: ${command('config --help')}`,
   })
 }
 
@@ -193,7 +194,7 @@ async function setApiKey(providerId: string, fromStdin: boolean, json: boolean):
       ERROR_CODE.VALIDATION_ERROR,
       fromStdin ? 'No key was read from stdin.' : 'A key is required.',
       {
-        hint: `Pipe it in instead: echo "$KEY" | mediagen config set ${providerId} --stdin`,
+        hint: `Pipe it in instead: echo "$KEY" | ${command(`config set ${providerId} --stdin`)}`,
       },
     )
   }
@@ -329,14 +330,14 @@ function runGet(args: string[], json: boolean): ExitCode {
   const key = args[0]
   if (key === undefined) {
     throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, 'config get needs a key.', {
-      hint: 'Run: mediagen config list',
+      hint: `Run: ${command('config list')}`,
     })
   }
 
   const row = rows().find((candidate) => candidate.key === key)
   if (!row) {
     throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown config key "${key}".`, {
-      hint: 'Run: mediagen config list',
+      hint: `Run: ${command('config list')}`,
     })
   }
 
@@ -357,7 +358,7 @@ function runUnset(args: string[], json: boolean): ExitCode {
   const key = args[0]
   if (key === undefined) {
     throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, 'config unset needs a key.', {
-      hint: 'Run: mediagen config list',
+      hint: `Run: ${command('config list')}`,
     })
   }
 
@@ -411,7 +412,7 @@ function removeSetting(file: ConfigFile, key: string): ConfigFile {
     }
     default:
       throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown config key "${key}".`, {
-        hint: 'Run: mediagen config list',
+        hint: `Run: ${command('config list')}`,
       })
   }
 }

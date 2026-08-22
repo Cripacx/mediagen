@@ -18,7 +18,7 @@ import { ERROR_CODE } from '../../core/errors.js'
 const run = promisify(execFile)
 const BIN = fileURLToPath(new URL('../../../dist/bin.js', import.meta.url))
 const SKILL = readFileSync(
-  fileURLToPath(new URL('../../../skill/SKILL.md', import.meta.url)),
+  fileURLToPath(new URL('../../../skills/mediagen/SKILL.md', import.meta.url)),
   'utf-8',
 )
 

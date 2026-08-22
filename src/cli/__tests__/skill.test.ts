@@ -82,7 +82,13 @@ describe('claims the skill makes about the tool', () => {
   })
 
   it('names only flags the CLI actually has', async () => {
-    const { stdout } = await run(process.execPath, [BIN, 'image', '--help'])
+    // Checked against both kinds: --duration exists on video alone, and the
+    // skill documents the whole surface rather than one subcommand's.
+    const [image, video] = await Promise.all([
+      run(process.execPath, [BIN, 'image', '--help']),
+      run(process.execPath, [BIN, 'video', '--help']),
+    ])
+    const available = image.stdout + video.stdout
 
     const block = SKILL.slice(
       SKILL.indexOf('## Options worth knowing'),
@@ -92,7 +98,7 @@ describe('claims the skill makes about the tool', () => {
 
     expect(flags.length).toBeGreaterThan(5)
     for (const flag of flags) {
-      expect(stdout, `the skill documents ${flag}, which the CLI does not have`).toContain(flag)
+      expect(available, `the skill documents ${flag}, which the CLI does not have`).toContain(flag)
     }
   })
 

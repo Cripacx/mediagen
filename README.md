@@ -25,7 +25,11 @@ Under construction, following the build order in §13.
 | Skill                                     | §11             |       |
 | Video                                     | §10             |       |
 
-Providers targeted for the first release: Google Gemini, OpenAI, Kie AI.
+| Provider      | Images          | Video | Key verification         |
+| ------------- | --------------- | ----- | ------------------------ |
+| Google Gemini | yes             | yes   | live probe               |
+| OpenAI        | yes             | —     | live probe               |
+| Kie AI        | yes, ~30 models | —     | none cheap enough (§4.5) |
 
 ## Development
 
@@ -43,8 +47,14 @@ line to stdout.
 ```bash
 mediagen image "a red bicycle in the rain"
 mediagen image "a banner" --aspect-ratio 16:9 --json
-mediagen image --help
+mediagen video "a marble rolling down a track" --duration 6
+mediagen models          # what each provider would use, and why
+mediagen mark photo.png  # mark existing media as AI-generated
 ```
+
+Started with no subcommand, `mediagen` runs the MCP server on stdio, which is
+how MCP hosts spawn it. The agent skill in [skill/](skill/SKILL.md) drives the
+CLI.
 
 `--json` puts exactly one object on stdout and nothing else; in human mode the
 saved path is the last line. Exit codes are `0` success, `2` invalid input,

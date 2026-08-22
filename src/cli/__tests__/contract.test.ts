@@ -139,6 +139,52 @@ describe('exit codes (§4.3)', () => {
   })
 })
 
+describe('video as a second kind, not a second product (§10)', () => {
+  it('offers video with the same options as image', async () => {
+    const [image, video] = await Promise.all([
+      mediagen(['image', '--help']),
+      mediagen(['video', '--help']),
+    ])
+
+    // §2.1 — kind is a dimension. An option existing for one and not the
+    // other would be the fork the specification forbids.
+    const flags = (help: string) => [...help.matchAll(/^\s+(--[a-z-]+)/gm)].map((m) => m[1]!)
+    for (const flag of flags(image.stdout)) {
+      expect(flags(video.stdout), `${flag} is missing from video`).toContain(flag)
+    }
+  })
+
+  it('accepts --duration on video, which image refuses', async () => {
+    const { stdout } = await mediagen(['video', '--help'])
+
+    expect(stdout).toContain('--duration')
+  })
+
+  it('routes a video request through the same configuration check', async () => {
+    // Nothing configured, so this must fail on credentials exactly as the
+    // image path does — same taxonomy, same exit code.
+    const { code, stdout } = await mediagen(['video', 'a marble rolling', '--json'])
+
+    expect(code).toBe(3)
+    expect(JSON.parse(stdout.trim())).toMatchObject({ errorCode: 'CONFIG_ERROR' })
+  })
+
+  it('rejects an aspect ratio no video model offers, before any network call', async () => {
+    const { code, stderr } = await mediagen(['video', 'x', '--aspect-ratio', '21:9'])
+
+    expect(code).toBe(2)
+    expect(stderr).toContain('16:9, 9:16')
+  })
+
+  it('reports that a provider without video cannot do it', async () => {
+    const { code, stderr } = await mediagen(['video', 'x', '--provider', 'openai'])
+
+    expect(code).toBe(2)
+    expect(stderr).toMatch(/does not generate video/)
+    expect(stderr).toContain('gemini')
+  })
+})
+
 describe('secret handling (§3.5)', () => {
   it('exposes no flag anywhere that takes an API key as an argument', async () => {
     // Keys on the command line land in shell history and in the process list,

@@ -14,7 +14,11 @@ stdout and nothing else, so you never have to parse prose.
 
 ```bash
 mediagen image "<prompt>" --json
+mediagen video "<prompt>" --json
 ```
+
+Video takes minutes and only Gemini does it. Progress goes to stderr; the one
+JSON object still lands on stdout at the end.
 
 If you have no shell, the same pipeline is available over MCP as the
 `generate_media` tool, with `list_models` and `check_configuration` alongside
@@ -30,14 +34,14 @@ image, because the model resolves everything you left unsaid arbitrarily.
 Before generating, decide these. Not all of them matter every time, but each
 one you leave open is one the model decides for you:
 
-| | |
-|---|---|
-| **Subject** | What is present, and what it is doing. Concrete nouns beat categories. |
-| **Composition** | Framing, where the subject sits, what surrounds it, depth, what is cropped. |
-| **Light** | Source, direction, hardness, colour temperature, time of day. This does more than anything else to decide whether an image reads as photographic or synthetic. |
-| **Camera or medium** | Lens and distance for a photograph; tool and surface for an illustration. This resolves scale, which models otherwise get arbitrarily wrong. |
-| **Material** | What things are made of and how they catch light. |
-| **Atmosphere** | Mood and palette, stated plainly. The easiest to overdo — an over-styled image is harder to use than a plain one. |
+|                      |                                                                                                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Subject**          | What is present, and what it is doing. Concrete nouns beat categories.                                                                                         |
+| **Composition**      | Framing, where the subject sits, what surrounds it, depth, what is cropped.                                                                                    |
+| **Light**            | Source, direction, hardness, colour temperature, time of day. This does more than anything else to decide whether an image reads as photographic or synthetic. |
+| **Camera or medium** | Lens and distance for a photograph; tool and surface for an illustration. This resolves scale, which models otherwise get arbitrarily wrong.                   |
+| **Material**         | What things are made of and how they catch light.                                                                                                              |
+| **Atmosphere**       | Mood and palette, stated plainly. The easiest to overdo — an over-styled image is harder to use than a plain one.                                              |
 
 Two or three sentences is usually right. Some specifics:
 
@@ -63,13 +67,14 @@ make the call, generate, and say what you assumed.
 Run `mediagen models --json` to see what is configured and what each provider
 would use. As a starting point:
 
-| Task | Provider | Why |
-|---|---|---|
-| General images, wide aspect ratios | `gemini` | 14 aspect ratios including 21:9 and 8:1, sizes to 4K, edits input images |
-| Complex instructions, many elements | `gemini` with `--model gemini-3-pro-image` | Reasons about the prompt before generating; slower |
-| Speed and volume | `gemini` (default model) or `openai --model gpt-image-1-mini` | |
-| Strong instruction following | `openai --model gpt-image-1.5` or `gpt-image-2` | |
-| A specific third-party model | `kie` | Aggregates ~30 models: Flux, Imagen, Seedream, Grok and others |
+| Task                                | Provider                                                      | Why                                                                      |
+| ----------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| General images, wide aspect ratios  | `gemini`                                                      | 14 aspect ratios including 21:9 and 8:1, sizes to 4K, edits input images |
+| Complex instructions, many elements | `gemini` with `--model gemini-3-pro-image`                    | Reasons about the prompt before generating; slower                       |
+| Speed and volume                    | `gemini` (default model) or `openai --model gpt-image-1-mini` |                                                                          |
+| Strong instruction following        | `openai --model gpt-image-1.5` or `gpt-image-2`               |                                                                          |
+| A specific third-party model        | `kie`                                                         | Aggregates ~30 models: Flux, Imagen, Seedream, Grok and others           |
+| Video                               | `gemini`                                                      | The only provider here that generates video; 16:9 and 9:16 only          |
 
 **OpenAI takes pixel sizes, not aspect ratios.** It can do 1:1, 3:2 and 2:3
 only. It genuinely cannot do 16:9 — asking for one is rejected rather than
@@ -90,6 +95,7 @@ released model works before this skill knows about it.
 --output-name <name>    file name; the extension may select the format
 --output-dir <dir>
 --quality <preset>      fast, balanced, quality
+--duration <seconds>    video only
 --mark                  machine-readable AI-generated marker
 --visible-label         visible AI disclosure composited into the image
 ```
@@ -107,19 +113,35 @@ otherwise take it for a photograph.
 
 `mediagen mark <file...>` applies both to media that already exists.
 
+**Video cannot be marked yet.** Writing XMP into a video container is a
+different operation from writing it into a still, and this build does not do
+it — `--mark` on a video is refused by name rather than silently ignored. If a
+video needs a disclosure, say so to the user rather than assuming it is marked.
+
 ## Reading the result
 
 Success:
 
 ```json
-{"success":true,"filePath":"./output/image-20260823T094107Z.png","kind":"image",
- "provider":"gemini","model":"gemini-3.1-flash-image","mimeType":"image/png"}
+{
+  "success": true,
+  "filePath": "./output/image-20260823T094107Z.png",
+  "kind": "image",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-image",
+  "mimeType": "image/png"
+}
 ```
 
 Failure:
 
 ```json
-{"success":false,"errorCode":"CONFIG_ERROR","error":"…","hint":"Run: mediagen config set gemini"}
+{
+  "success": false,
+  "errorCode": "CONFIG_ERROR",
+  "error": "…",
+  "hint": "Run: mediagen config set gemini"
+}
 ```
 
 Exit codes: `0` success, `2` invalid input, `3` configuration, `4` generation
@@ -128,14 +150,14 @@ or I/O failure.
 Act on `errorCode`, and pass the `hint` on to the user — it names a concrete
 next action.
 
-| `errorCode` | What to do |
-|---|---|
-| `CONFIG_ERROR` | **Tell the user to run `mediagen init` in their terminal.** See below. |
-| `VALIDATION_ERROR` | The message names the supported values. Fix the request and retry once. |
-| `CONTENT_BLOCKED` | The provider declined the prompt. Rephrase, or suggest another provider. Do not retry unchanged. |
-| `API_ERROR` / `NETWORK_ERROR` | Retry once. If it persists, suggest another provider. |
-| `TIMEOUT` | The job outlived the wait. Retry, or suggest a faster model. |
-| `FILE_ERROR` | A path problem. Check the path with the user. |
+| `errorCode`                   | What to do                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `CONFIG_ERROR`                | **Tell the user to run `mediagen init` in their terminal.** See below.                           |
+| `VALIDATION_ERROR`            | The message names the supported values. Fix the request and retry once.                          |
+| `CONTENT_BLOCKED`             | The provider declined the prompt. Rephrase, or suggest another provider. Do not retry unchanged. |
+| `API_ERROR` / `NETWORK_ERROR` | Retry once. If it persists, suggest another provider.                                            |
+| `TIMEOUT`                     | The job outlived the wait. Retry, or suggest a faster model.                                     |
+| `FILE_ERROR`                  | A path problem. Check the path with the user.                                                    |
 
 ## Never ask for an API key
 
@@ -161,6 +183,10 @@ mediagen image "A red steel bicycle leaning against a wet brick wall, seen from
 
 # Wide banner, marked for publication.
 mediagen image "..." --aspect-ratio 21:9 --size 2K --mark --json
+
+# Video: slow, and Gemini only.
+mediagen video "A marble rolling fast down a wooden track, continuous smooth
+  shot following it from the side, warm afternoon light" --duration 6 --json
 
 # Edit an existing image.
 mediagen image "Replace the sky with heavy storm clouds, keep the lighting on

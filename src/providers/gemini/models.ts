@@ -83,5 +83,34 @@ export function defaultImageModel(quality: QualityPreset): string {
   }
 }
 
+/**
+ * Google's video models.
+ *
+ * Aspect ratios come from `@google/genai`'s `VideoResponseFormatAspectRatio`,
+ * which lists two and nothing more — video is far more constrained than
+ * still images, and pretending otherwise would reject-by-surprise later.
+ *
+ * Durations are not a documented `response_format` parameter for the omni
+ * model, so none are declared: §6.3 does not police a field the vendor does
+ * not document, and inventing a constraint here would reject valid requests.
+ *
+ * Source: https://ai.google.dev/gemini-api/docs/interactions/omni.md.txt
+ */
+export const GEMINI_VIDEO_MODELS = [
+  {
+    id: 'gemini-omni-flash-preview',
+    kind: 'video',
+    aspectRatios: ['16:9', '9:16'],
+    acceptsInputMedia: true,
+    note: 'Omni Flash. Text-to-video and image-to-video.',
+  },
+] as const satisfies readonly ModelDescriptor[]
+
+export function defaultVideoModel(_quality: QualityPreset): string {
+  // One model, so the preset selects nothing. Stated rather than implied,
+  // because a second model would make this a real decision.
+  return 'gemini-omni-flash-preview'
+}
+
 /** Used to probe a credential cheaply (§4.5), never for media. */
 export const GEMINI_PROBE_MODEL = 'gemini-3.5-flash'

@@ -1,0 +1,30 @@
+name: Kie model table
+
+# Deliberately not part of the main CI job: that would make every pull request
+# depend on docs.kie.ai being reachable. Drift is something to learn about on a
+# schedule, not something that should block an unrelated change.
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compare the committed model table against Kie's documentation
+        run: npm run check:kie-models

@@ -28,10 +28,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "cycles": "dpdm --no-warning --no-tree --exit-code circular:1 \"src/**/*.ts\"",
-    "catalogue:sync": "node scripts/sync-kie-models.mjs",
-    "catalogue:check": "node scripts/sync-kie-models.mjs --check",
     "verify": "npm run typecheck && npm run lint && npm run format:check && npm run cycles && npm test",
-    "pretest": "npm run build"
+    "pretest": "npm run build",
+    "sync:kie-models": "node scripts/sync-kie-models.mjs",
+    "check:kie-models": "node scripts/sync-kie-models.mjs --check"
   },
   "dependencies": {
     "@google/genai": "^2.18.0",

@@ -16,6 +16,7 @@
 
 import { ERROR_CODE, MediagenError } from '../core/errors.js'
 import { geminiManifest } from './gemini/manifest.js'
+import { kieManifest } from './kie/manifest.js'
 import { openaiManifest } from './openai/manifest.js'
 import type { MediaKind } from '../types/media.js'
 import type {
@@ -25,7 +26,7 @@ import type {
   ProviderManifest,
 } from '../types/provider.js'
 
-const MANIFESTS = [geminiManifest, openaiManifest] as const
+const MANIFESTS = [geminiManifest, openaiManifest, kieManifest] as const
 
 /**
  * Derived from the manifests, so a provider cannot exist in the union but not

@@ -60,6 +60,15 @@ describe('the npm package', () => {
     expect(pkg.repository?.url).toContain('github.com')
   })
 
+  it('ships the licence it claims', () => {
+    // npm includes LICENSE automatically, but only if it exists. Declaring
+    // MIT with no licence text is a claim with nothing behind it.
+    const licence = fileURLToPath(new URL('../../../LICENSE', import.meta.url))
+
+    expect(existsSync(licence), 'package.json declares a licence but LICENSE is missing').toBe(true)
+    expect(readFileSync(licence, 'utf-8')).toContain('MIT License')
+  })
+
   it('verifies before publishing', () => {
     // Without this, `npm publish` can ship a dist built from code that no
     // longer typechecks.

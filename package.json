@@ -33,7 +33,9 @@
     "verify": "npm run typecheck && npm run lint && npm run cycles && npm run test"
   },
   "dependencies": {
+    "@google/genai": "^2.18.0",
     "@modelcontextprotocol/sdk": "^1.12.0",
+    "openai": "^7.5.0",
     "sharp": "^0.34.1"
   },
   "devDependencies": {

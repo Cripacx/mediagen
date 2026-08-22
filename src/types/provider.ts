@@ -91,7 +91,14 @@ export interface GenerationClient {
   generate(request: GenerationRequest, options: ClientOptions): Promise<GeneratedMedia>
 }
 
-/** Spec §5 — used for prompt enhancement, or explicitly absent. */
+/**
+ * A cheap text completion, or explicitly absent.
+ *
+ * This exists for §4.5: `doctor` and `config set` verify a key with one
+ * minimal live request, and a text model is the cheapest request a provider
+ * offers. A provider without one is reported as `unverifiable` rather than
+ * having an image generation spent on proving its key works.
+ */
 export interface TextClient {
   complete(instruction: string, options: ClientOptions): Promise<string>
 }
@@ -139,15 +146,15 @@ export interface ProviderManifest {
   readonly clients: Readonly<Partial<Record<MediaKind, () => Promise<GenerationClientFactory>>>>
 
   /**
-   * Spec §5 — `null` where the provider exposes no text model. Enhancement is
-   * then skipped rather than demanding credentials for a second provider.
+   * `null` where the provider exposes no text model. Key verification then
+   * reports `unverifiable` (§4.5) rather than guessing.
    */
   readonly textClient: (() => Promise<TextClientFactory>) | null
 
   /**
-   * The model enhancement runs against. Named here rather than inside the
-   * client so §5 can be skipped without loading the client to ask.
-   * Undefined exactly when `textClient` is null.
+   * The model used to probe a credential. Named here rather than inside the
+   * client so the decision costs no import. Undefined exactly when
+   * `textClient` is null.
    */
   readonly textModel?: string
 }

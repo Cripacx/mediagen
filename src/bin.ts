@@ -7,7 +7,7 @@
  * unexpected throw still leaves stdout obeying the contract in §4.2.
  */
 
-import { main } from './cli/main.js'
+import { runProgram } from './cli/program.js'
 import { reportError } from './cli/output.js'
 
 const argv = process.argv.slice(2)
@@ -19,7 +19,7 @@ if (argv.includes('--verbose')) {
 }
 
 try {
-  process.exitCode = await main(argv)
+  process.exitCode = await runProgram(argv)
 } catch (error) {
   process.exitCode = reportError(error, argv.includes('--json'))
 }

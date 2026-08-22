@@ -14,7 +14,16 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          // Omitting a key by destructuring the rest is the idiom used to
+          // remove a setting from the config file immutably.
+          ignoreRestSiblings: true,
+        },
+      ],
       // The output contract (§4.2) lives in src/cli/output.ts and nowhere else.
       'no-console': 'error',
     },

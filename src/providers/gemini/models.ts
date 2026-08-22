@@ -83,5 +83,5 @@ export function defaultImageModel(quality: QualityPreset): string {
   }
 }
 
-/** Used for prompt enhancement (§5), never for media. */
+/** Used to probe a credential cheaply (§4.5), never for media. */
 export const GEMINI_TEXT_MODEL = 'gemini-3.5-flash'

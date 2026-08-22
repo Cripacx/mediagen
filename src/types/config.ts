@@ -37,7 +37,6 @@ export interface ConfigFile {
   models?: Record<string, string>
   outputDir?: string
   quality?: QualityPreset
-  enhancePrompt?: boolean
 }
 
 /** What the pipeline actually runs with, once all three layers have been read. */
@@ -45,7 +44,6 @@ export interface ResolvedConfig {
   readonly defaultProvider: Resolved<string>
   readonly outputDir: Resolved<string>
   readonly quality: Resolved<QualityPreset>
-  readonly enhancePrompt: Resolved<boolean>
   /** Spec §3.3 — resolved per provider, on use, never eagerly for all. */
   apiKey(providerId: string): Resolved<string> | undefined
   model(providerId: string): Resolved<string> | undefined
@@ -54,5 +52,4 @@ export interface ResolvedConfig {
 export const CONFIG_DEFAULTS = {
   outputDir: './output',
   quality: 'fast',
-  enhancePrompt: true,
-} as const satisfies { outputDir: string; quality: QualityPreset; enhancePrompt: boolean }
+} as const satisfies { outputDir: string; quality: QualityPreset }

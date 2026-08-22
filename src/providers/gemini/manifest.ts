@@ -44,5 +44,5 @@ export const geminiManifest = {
   textModel: GEMINI_TEXT_MODEL,
 } as const satisfies ProviderManifest
 
-/** Exported so the enhancer can name the model without importing the client. */
+/** Exported so key verification can name the model without loading the client. */
 export { GEMINI_TEXT_MODEL }

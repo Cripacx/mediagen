@@ -21,7 +21,6 @@ export const ENV_VARS = {
   provider: 'MEDIAGEN_PROVIDER',
   outputDir: 'MEDIAGEN_OUTPUT_DIR',
   quality: 'MEDIAGEN_QUALITY',
-  enhance: 'MEDIAGEN_ENHANCE',
 } as const
 
 /** Spec §3.2 — `<PROVIDER>_MODEL`, derived so a new provider needs no edit here. */
@@ -45,20 +44,10 @@ export function loadConfig(layers: ConfigLayers = loadConfigLayers()): ResolvedC
       ? { ...rawQuality, value: rawQuality.value }
       : fromDefault(CONFIG_DEFAULTS.quality)
 
-  const rawEnhance = resolve(
-    layers,
-    ENV_VARS.enhance,
-    file.enhancePrompt === undefined ? undefined : String(file.enhancePrompt),
-  )
-  const enhancePrompt: Resolved<boolean> = rawEnhance
-    ? { ...rawEnhance, value: !isFalsey(rawEnhance.value) }
-    : fromDefault(CONFIG_DEFAULTS.enhancePrompt)
-
   return {
     defaultProvider,
     outputDir,
     quality,
-    enhancePrompt,
     apiKey(providerId) {
       const provider = findProvider(providerId)
       if (!provider) return undefined
@@ -116,12 +105,4 @@ export function assertSomeProviderUsable(config: ResolvedConfig): void {
   }
 
   requireApiKey(config, fallback)
-}
-
-/**
- * Accepts what a person would plausibly write to mean "off". Anything else,
- * including an empty string, leaves the setting at its default of on (§3.2).
- */
-function isFalsey(value: string): boolean {
-  return ['0', 'false', 'no', 'off'].includes(value.trim().toLowerCase())
 }

@@ -43,20 +43,6 @@ export interface GenerationRequest {
   readonly outputName?: string
   readonly outputDir?: string
   readonly quality?: QualityPreset
-  /** Defaults to on; see §5. */
-  readonly enhancePrompt?: boolean
-  /**
-   * Spec §5 — hints that steer prompt expansion. They describe what the user
-   * is trying to achieve, not what the provider should be told, so they never
-   * reach a generation client directly.
-   */
-  readonly purpose?: string
-  /** Keep a character's appearance consistent across elements. */
-  readonly maintainCharacter?: boolean
-  /** Compose several distinct elements into one coherent scene. */
-  readonly blendElements?: boolean
-  /** Depict real places, objects or conventions accurately. */
-  readonly realWorldAccuracy?: boolean
   /** Machine-readable AI marking (§9). */
   readonly mark?: boolean
   /** Visible AI disclosure (§9). */

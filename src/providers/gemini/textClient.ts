@@ -1,5 +1,5 @@
 /**
- * Gemini text completion, used only for prompt enhancement (§5).
+ * Gemini text completion, used only to verify a credential cheaply (§4.5).
  */
 
 import { ERROR_CODE, MediagenError } from '../../core/errors.js'

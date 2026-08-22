@@ -21,6 +21,19 @@ import {
 } from '../core/errors.js'
 import type { GenerationResult } from '../types/media.js'
 
+/**
+ * How an action reports its exit code.
+ *
+ * Actions cannot return a value through commander, and must not exit the
+ * process themselves — that would truncate a pending stdout write. They write
+ * here instead. It lives in this module because this is the leaf every command
+ * already imports; putting it beside the command tree would make each command
+ * import the tree that imports it.
+ */
+export interface Outcome {
+  code: ExitCode
+}
+
 /** Writes the single stdout JSON object. */
 export function writeJson(payload: unknown): void {
   process.stdout.write(`${JSON.stringify(payload)}\n`)

@@ -1,132 +1,102 @@
 /**
  * `mediagen image` and `mediagen video`.
  *
- * Spec §2.1 — kind is a dimension, not a fork. Both subcommands are this one
- * function with a different `kind`, so an option can never exist for images
- * and quietly not for video.
+ * Spec §2.1 — kind is a dimension, not a fork. Both subcommands are built by
+ * this one function with a different `kind`, so an option cannot exist for
+ * images and quietly not for video.
  */
 
-import { parseArgs } from 'node:util'
-import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../../core/errors.js'
+import { Command } from 'commander'
+import { ERROR_CODE, MediagenError } from '../../core/errors.js'
 import { createLogger } from '../../core/logger.js'
 import { generate } from '../../core/pipeline.js'
 import { loadConfig } from '../../config/resolve.js'
 import { PROVIDER_IDS } from '../../providers/registry.js'
-import { QUALITY_PRESETS } from '../../types/media.js'
-import { reportError, reportResult, writeLine } from '../output.js'
+import { QUALITY_PRESETS, isQualityPreset } from '../../types/media.js'
+import { reportError, reportResult, type Outcome } from '../output.js'
 import type { GenerationRequest, MediaKind } from '../../types/media.js'
 
-const OPTIONS = {
-  provider: { type: 'string' },
-  model: { type: 'string' },
-  input: { type: 'string' },
-  'aspect-ratio': { type: 'string' },
-  size: { type: 'string' },
-  duration: { type: 'string' },
-  'output-name': { type: 'string' },
-  'output-dir': { type: 'string' },
-  quality: { type: 'string' },
-  'no-enhance': { type: 'boolean' },
-  purpose: { type: 'string' },
-  'maintain-character': { type: 'boolean' },
-  'blend-elements': { type: 'boolean' },
-  'real-world-accuracy': { type: 'boolean' },
-  mark: { type: 'boolean' },
-  'visible-label': { type: 'boolean' },
-  json: { type: 'boolean' },
-  verbose: { type: 'boolean' },
-  quiet: { type: 'boolean' },
-  help: { type: 'boolean', short: 'h' },
-} as const
+interface GenerateOptions {
+  provider?: string
+  model?: string
+  input?: string
+  aspectRatio?: string
+  size?: string
+  duration?: number
+  outputName?: string
+  outputDir?: string
+  quality?: string
+  mark?: boolean
+  visibleLabel?: boolean
+  json?: boolean
+  verbose?: boolean
+  quiet?: boolean
+}
 
-function help(kind: MediaKind): string {
-  const durationRow = kind === 'video' ? '  --duration <seconds>       Length of the clip\n' : ''
+export function buildGenerateCommand(kind: MediaKind, outcome: Outcome): Command {
+  const command = new Command(kind)
+    .description(`Generate ${kind === 'image' ? 'an image' : 'a video'} from a text prompt`)
+    .argument('<prompt...>', 'what to generate')
+    .option('--provider <name>', `one of: ${PROVIDER_IDS.join(', ')}`)
+    .option('--model <id>', 'model for the chosen provider (see: mediagen models)')
+    .option('--input <path>', 'source media to edit or transform')
+    .option('--aspect-ratio <ratio>', 'e.g. 1:1, 16:9, 9:16')
+    .option('--size <size>', 'e.g. 1K, 2K, 4K')
+    .option('--output-name <name>', 'output file name; its extension may select the format')
+    .option('--output-dir <dir>', 'directory to save into')
+    .option('--quality <preset>', `one of: ${QUALITY_PRESETS.join(', ')}`)
+    .option('--mark', 'write the machine-readable AI-generated marker')
+    .option('--visible-label', 'composite a visible AI disclosure into the media')
+    .option('--json', 'emit exactly one JSON object on stdout')
+    .option('--verbose', 'diagnostics on stderr')
+    .option('--quiet', 'suppress progress on stderr')
+    .exitOverride()
 
-  return `
-Generate ${kind === 'image' ? 'an image' : 'a video'} from a text prompt.
+  if (kind === 'video') {
+    command.option('--duration <seconds>', 'length of the clip', parsePositiveNumber)
+  }
 
-Usage:
-  mediagen ${kind} <prompt> [options]
-
-Options:
-  --provider <name>          ${PROVIDER_IDS.join(', ')} (default: MEDIAGEN_PROVIDER)
-  --model <id>               Model for the chosen provider (see: mediagen models)
-  --input <path>             Source media to edit or transform
-  --aspect-ratio <ratio>     e.g. 1:1, 16:9, 9:16
-  --size <size>              e.g. 1K, 2K, 4K
-${durationRow}  --output-name <name>       Output file name; its extension may select the format
-  --output-dir <dir>         Directory to save into (default: MEDIAGEN_OUTPUT_DIR)
-  --quality <preset>         ${QUALITY_PRESETS.join(', ')}
-  --no-enhance               Send the prompt through unchanged
-  --purpose <text>           Intended use; steers how the prompt is expanded
-  --maintain-character       Keep a character's appearance consistent
-  --blend-elements           Compose several elements into one coherent scene
-  --real-world-accuracy      Prefer checkable detail over evocative language
-  --mark                     Write the machine-readable AI-generated marker
-  --visible-label            Composite a visible AI disclosure into the media
-  --json                     Emit exactly one JSON object on stdout
-  --verbose                  Diagnostics on stderr
-  --quiet                    Suppress progress on stderr
-  --help, -h                 Show this help
-
-Exit codes:
-  0 success   2 invalid input   3 configuration   4 generation or I/O failure
-
+  command.addHelpText(
+    'after',
+    `
 Examples:
   mediagen ${kind} "a red bicycle in the rain"
   mediagen ${kind} "a logo" --provider gemini --output-name logo.png
   mediagen ${kind} "a banner" --aspect-ratio 16:9 --json
-`
-}
 
-export async function runGenerate(kind: MediaKind, argv: string[]): Promise<ExitCode> {
-  // `--json` is read before parsing so that a parse failure is still reported
-  // in the format the caller asked for.
-  const wantsJson = argv.includes('--json')
+The prompt is sent exactly as written. Writing a specific prompt — subject,
+composition, light, camera or medium, materials, atmosphere — does far more
+for the result than any flag here.`,
+  )
 
-  let values: Record<string, string | boolean | undefined>
-  let positionals: string[]
-  try {
-    ;({ values, positionals } = parseArgs({ args: argv, options: OPTIONS, allowPositionals: true }))
-  } catch (error) {
-    return reportError(
-      new MediagenError(ERROR_CODE.VALIDATION_ERROR, (error as Error).message, {
-        hint: `Run: mediagen ${kind} --help`,
-      }),
-      wantsJson,
-    )
-  }
+  command.action(async (promptParts: string[], options: GenerateOptions) => {
+    const json = options.json === true
+    try {
+      const request = buildRequest(kind, promptParts, options)
 
-  const json = values['json'] === true
+      const log = createLogger({
+        verbose: options.verbose === true,
+        // In `--json` mode the object on stdout is the whole answer, so
+        // progress chatter on stderr is noise unless it was asked for.
+        quiet: options.quiet === true || (json && options.verbose !== true),
+      })
 
-  if (values['help'] === true) {
-    writeLine(help(kind).trim())
-    return EXIT_CODE.SUCCESS
-  }
+      const result = await generate(request, { config: loadConfig(), log })
+      outcome.code = reportResult(result, json)
+    } catch (error) {
+      outcome.code = reportError(error, json)
+    }
+  })
 
-  try {
-    const request = buildRequest(kind, values, positionals)
-
-    const log = createLogger({
-      verbose: values['verbose'] === true,
-      // In `--json` mode the object on stdout is the whole answer, so progress
-      // chatter on stderr is noise unless it was asked for.
-      quiet: values['quiet'] === true || (json && values['verbose'] !== true),
-    })
-
-    const result = await generate(request, { config: loadConfig(), log })
-    return reportResult(result, json)
-  } catch (error) {
-    return reportError(error, json)
-  }
+  return command
 }
 
 function buildRequest(
   kind: MediaKind,
-  values: Record<string, string | boolean | undefined>,
-  positionals: string[],
+  promptParts: string[],
+  options: GenerateOptions,
 ): GenerationRequest {
-  const prompt = positionals.join(' ').trim()
+  const prompt = promptParts.join(' ').trim()
   if (prompt.length === 0) {
     throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, 'A prompt is required.', {
       hint: `Provide it as an argument: mediagen ${kind} "a red bicycle"`,
@@ -136,81 +106,60 @@ function buildRequest(
   return {
     prompt,
     kind,
-    ...optionalString(values, 'provider', 'provider'),
-    ...optionalString(values, 'model', 'model'),
-    ...optionalString(values, 'input', 'inputMedia'),
-    ...optionalString(values, 'aspect-ratio', 'aspectRatio'),
-    ...optionalString(values, 'size', 'size'),
-    ...optionalString(values, 'output-name', 'outputName'),
-    ...optionalString(values, 'output-dir', 'outputDir'),
-    ...quality(values),
-    ...duration(values, kind),
-    ...optionalString(values, 'purpose', 'purpose'),
-    ...(values['no-enhance'] === true ? { enhancePrompt: false } : {}),
-    ...(values['maintain-character'] === true ? { maintainCharacter: true } : {}),
-    ...(values['blend-elements'] === true ? { blendElements: true } : {}),
-    ...(values['real-world-accuracy'] === true ? { realWorldAccuracy: true } : {}),
-    ...(values['mark'] === true ? { mark: true } : {}),
-    ...(values['visible-label'] === true ? { visibleLabel: true } : {}),
+    ...nonEmpty('provider', options.provider, 'provider'),
+    ...nonEmpty('model', options.model, 'model'),
+    ...nonEmpty('input', options.input, 'inputMedia'),
+    ...nonEmpty('aspect-ratio', options.aspectRatio, 'aspectRatio'),
+    ...nonEmpty('size', options.size, 'size'),
+    ...nonEmpty('output-name', options.outputName, 'outputName'),
+    ...nonEmpty('output-dir', options.outputDir, 'outputDir'),
+    ...quality(options.quality),
+    ...(options.duration === undefined ? {} : { duration: options.duration }),
+    ...(options.mark === true ? { mark: true } : {}),
+    ...(options.visibleLabel === true ? { visibleLabel: true } : {}),
   }
 }
 
 /**
  * An option present but empty is a mistake worth naming. `--output-dir ""`
- * silently meaning "the default" is how a file ends up somewhere the user
- * never looks.
+ * silently meaning "the default" is how a file ends up somewhere nobody looks.
  */
-function optionalString<K extends string>(
-  values: Record<string, string | boolean | undefined>,
+function nonEmpty<K extends string>(
   flag: string,
+  value: string | undefined,
   field: K,
 ): Partial<Record<K, string>> {
-  const raw = values[flag]
-  if (typeof raw !== 'string') return {}
+  if (value === undefined) return {}
 
-  if (raw.trim().length === 0) {
+  if (value.trim().length === 0) {
     throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `--${flag} cannot be empty.`, {
       hint: `Pass a value, or drop --${flag}.`,
     })
   }
 
-  return { [field]: raw } as Partial<Record<K, string>>
+  return { [field]: value } as Partial<Record<K, string>>
 }
 
-function quality(values: Record<string, string | boolean | undefined>) {
-  const raw = values['quality']
-  if (typeof raw !== 'string') return {}
+function quality(value: string | undefined) {
+  if (value === undefined) return {}
 
-  const match = QUALITY_PRESETS.find((preset) => preset === raw)
-  if (!match) {
-    throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown quality preset "${raw}".`, {
+  if (!isQualityPreset(value)) {
+    throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown quality preset "${value}".`, {
       hint: `Use one of: ${QUALITY_PRESETS.join(', ')}.`,
     })
   }
 
-  return { quality: match }
+  return { quality: value }
 }
 
-function duration(values: Record<string, string | boolean | undefined>, kind: MediaKind) {
-  const raw = values['duration']
-  if (typeof raw !== 'string') return {}
-
-  if (kind !== 'video') {
-    throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, '--duration applies to video only.', {
-      hint: 'Use: mediagen video "…" --duration 5',
-    })
-  }
-
+function parsePositiveNumber(raw: string): number {
   const parsed = Number(raw)
   if (!Number.isFinite(parsed) || parsed <= 0) {
     throw new MediagenError(
       ERROR_CODE.VALIDATION_ERROR,
       `--duration must be a positive number of seconds, got "${raw}".`,
-      {
-        hint: 'For example: --duration 5',
-      },
+      { hint: 'For example: --duration 5' },
     )
   }
-
-  return { duration: parsed }
+  return parsed
 }

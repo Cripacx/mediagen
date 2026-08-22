@@ -79,7 +79,6 @@ describe('validation happens before any network call (§12.1)', () => {
       defaultProvider: { value: 'gemini', layer: 'default', shadowed: [] },
       outputDir: { value: './output', layer: 'default', shadowed: [] },
       quality: { value: 'fast', layer: 'default', shadowed: [] },
-      enhancePrompt: { value: false, layer: 'default', shadowed: [] },
       apiKey,
       model: () => undefined,
     }

@@ -91,7 +91,11 @@ describe('human mode (§4.2)', () => {
     const { code, stdout } = await mediagen(['--help'])
 
     expect(code).toBe(0)
-    expect(stdout).toContain('mediagen image <prompt>')
+    // Every command §4.1 names is reachable, including the ones that only
+    // report that they are not built yet.
+    for (const command of ['image', 'video', 'config', 'doctor', 'init', 'mark', 'models']) {
+      expect(stdout, `${command} is missing from help`).toContain(command)
+    }
   })
 })
 
@@ -136,11 +140,36 @@ describe('exit codes (§4.3)', () => {
 })
 
 describe('secret handling (§3.5)', () => {
-  it('offers no way to pass an API key as an argument', async () => {
-    // Keys on the command line land in shell history and the process list.
+  it('exposes no flag anywhere that takes an API key as an argument', async () => {
+    // Keys on the command line land in shell history and in the process list,
+    // so this checks every command's help rather than only the root's.
+    const helps = await Promise.all(
+      [
+        ['--help'],
+        ['image', '--help'],
+        ['video', '--help'],
+        ['config', '--help'],
+        ['config', 'set', '--help'],
+        ['doctor', '--help'],
+        ['init', '--help'],
+      ].map(async (args) => (await mediagen(args)).stdout),
+    )
+
+    for (const help of helps) {
+      expect(help).not.toMatch(/--api-key|--key[ =<]|--token[ =<]|--secret[ =<]/)
+    }
+  })
+
+  it('documents the two safe ways to supply a key', async () => {
     const { stdout } = await mediagen(['--help'])
 
-    expect(stdout).not.toMatch(/--api-key|--key\b|--token\b/)
-    expect(stdout).toContain('never passed as arguments')
+    expect(stdout).toContain('never accepted as command arguments')
+    expect(stdout).toContain('--stdin')
+  })
+
+  it('offers --stdin on config set', async () => {
+    const { stdout } = await mediagen(['config', 'set', '--help'])
+
+    expect(stdout).toContain('--stdin')
   })
 })

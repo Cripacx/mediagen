@@ -117,7 +117,7 @@ export async function loadGenerationClient(
   return client
 }
 
-/** Spec §5 — `undefined` where the provider exposes no text model; enhancement is then skipped. */
+/** `undefined` where the provider exposes no text model to probe with (§4.5). */
 export async function loadTextClient(provider: ProviderManifest): Promise<TextClient | undefined> {
   if (!provider.textClient) return undefined
 

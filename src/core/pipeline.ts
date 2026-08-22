@@ -15,6 +15,7 @@
 
 import { loadGenerationClient, requireKindSupport, requireProvider } from '../providers/registry.js'
 import { requireApiKey } from '../config/resolve.js'
+import { markFile } from '../marking/mark.js'
 import { defaultStem, saveMedia } from './output.js'
 import type { GenerationRequest, GenerationResult, QualityPreset } from '../types/media.js'
 import type { Logger, ProviderManifest } from '../types/provider.js'
@@ -94,6 +95,21 @@ export async function generate(
     mimeType: media.mimeType,
     log,
   })
+
+  // §9 — marking happens after the file exists and before the path is
+  // reported, so a caller that reads the path always gets a marked file.
+  // Both switches default to off.
+  if (request.mark === true || request.visibleLabel === true) {
+    const marking = await markFile(
+      saved.filePath,
+      { machineReadable: request.mark === true, visibleLabel: request.visibleLabel === true },
+      { provider: provider.id, model },
+    )
+
+    if (marking.alreadyMarked && request.mark === true) {
+      log.info(`${provider.label} already declared a digital source type; left as it was.`)
+    }
+  }
 
   return {
     filePath: saved.filePath,

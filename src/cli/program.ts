@@ -22,6 +22,7 @@ import { buildConfigCommand } from './commands/config.js'
 import { buildDoctorCommand } from './commands/doctor.js'
 import { buildGenerateCommand } from './commands/generate.js'
 import { buildInitCommand } from './commands/init.js'
+import { buildModelsCommand } from './commands/models.js'
 import { reportError, type Outcome } from './output.js'
 
 export type { Outcome }
@@ -76,12 +77,12 @@ Exit codes:
   program.addCommand(buildConfigCommand(outcome))
   program.addCommand(buildDoctorCommand(outcome))
   program.addCommand(buildInitCommand(outcome))
+  program.addCommand(buildModelsCommand(outcome))
 
   // §4.1 names these; they are not built yet and say so rather than looking
   // like a typo the user made.
   for (const [name, description, note] of [
     ['mark', 'Mark existing media as AI-generated', 'Content marking (§9) is not built yet.'],
-    ['models', "Show each provider's models", 'Model listing (§7.2) is not built yet.'],
   ] as const) {
     program
       .command(name)

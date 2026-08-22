@@ -23,7 +23,7 @@ import { loadConfig } from '../config/resolve.js'
 import { LAYER_LABEL } from '../config/layers.js'
 import { PROVIDERS, PROVIDER_IDS, requireProvider } from '../providers/registry.js'
 import { MEDIA_KINDS, QUALITY_PRESETS } from '../types/media.js'
-import type { GenerationRequest, MediaKind } from '../types/media.js'
+import type { GenerationRequest } from '../types/media.js'
 
 /** Diagnostics go to stderr; an MCP host shows them in its own log. */
 const log = createLogger({ quiet: false })

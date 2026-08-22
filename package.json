@@ -30,7 +30,8 @@
     "cycles": "dpdm --no-warning --no-tree --exit-code circular:1 \"src/**/*.ts\"",
     "catalogue:sync": "node scripts/sync-kie-models.mjs",
     "catalogue:check": "node scripts/sync-kie-models.mjs --check",
-    "verify": "npm run typecheck && npm run lint && npm run cycles && npm run test"
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run cycles && npm test",
+    "pretest": "npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.18.0",

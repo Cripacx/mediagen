@@ -27,4 +27,7 @@ jobs:
       - run: npm run format:check
       # Spec §12.2: no circular dependencies, enforced rather than hoped for.
       - run: npm run cycles
+      # `pretest` builds first: the output-contract tests (§4.2) run the real
+      # binary, because an in-process test can pass while the shipped binary
+      # writes a stray line to stdout.
       - run: npm test

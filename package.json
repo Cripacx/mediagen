@@ -16,6 +16,7 @@
   },
   "files": [
     "dist",
+    "skill",
     "README.md",
     "SPEC.md"
   ],

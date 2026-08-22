@@ -92,19 +92,25 @@ export interface GenerationClient {
 }
 
 /**
- * A cheap text completion, or explicitly absent.
+ * One cheap authenticated request that proves a key works, or explicitly absent.
  *
- * This exists for §4.5: `doctor` and `config set` verify a key with one
- * minimal live request, and a text model is the cheapest request a provider
- * offers. A provider without one is reported as `unverifiable` rather than
+ * This exists for §3.5 and §4.5: a key is verified before it is stored, and
+ * `doctor` reports whether it still works. What counts as cheap is the
+ * provider's decision — listing models costs nothing at one vendor, a
+ * one-token completion is cheapest at another — so this returns nothing and
+ * signals failure by throwing.
+ *
+ * A provider with no cheap request is reported as `unverifiable` rather than
  * having an image generation spent on proving its key works.
  */
-export interface TextClient {
-  complete(instruction: string, options: ClientOptions): Promise<string>
+export type Probe = (options: ProbeOptions) => Promise<void>
+
+export interface ProbeOptions {
+  readonly apiKey: string
+  readonly signal?: AbortSignal
 }
 
 export type GenerationClientFactory = () => GenerationClient
-export type TextClientFactory = () => TextClient
 
 /**
  * A provider, as the registry sees it.
@@ -146,15 +152,8 @@ export interface ProviderManifest {
   readonly clients: Readonly<Partial<Record<MediaKind, () => Promise<GenerationClientFactory>>>>
 
   /**
-   * `null` where the provider exposes no text model. Key verification then
-   * reports `unverifiable` (§4.5) rather than guessing.
+   * `null` where the provider offers no cheap authenticated request. Key
+   * verification then reports `unverifiable` (§4.5) rather than guessing.
    */
-  readonly textClient: (() => Promise<TextClientFactory>) | null
-
-  /**
-   * The model used to probe a credential. Named here rather than inside the
-   * client so the decision costs no import. Undefined exactly when
-   * `textClient` is null.
-   */
-  readonly textModel?: string
+  readonly probe: (() => Promise<Probe>) | null
 }

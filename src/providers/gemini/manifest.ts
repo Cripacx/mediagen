@@ -7,7 +7,7 @@
  */
 
 import { findModel, validateAgainst } from '../../core/capabilities.js'
-import { GEMINI_IMAGE_MODELS, GEMINI_TEXT_MODEL, defaultImageModel } from './models.js'
+import { GEMINI_IMAGE_MODELS, defaultImageModel } from './models.js'
 import type { ProviderManifest } from '../../types/provider.js'
 
 export const geminiManifest = {
@@ -40,9 +40,5 @@ export const geminiManifest = {
     image: async () => (await import('./imageClient.js')).createImageClient,
   },
 
-  textClient: async () => (await import('./textClient.js')).createTextClient,
-  textModel: GEMINI_TEXT_MODEL,
+  probe: async () => (await import('./probe.js')).probe,
 } as const satisfies ProviderManifest
-
-/** Exported so key verification can name the model without loading the client. */
-export { GEMINI_TEXT_MODEL }

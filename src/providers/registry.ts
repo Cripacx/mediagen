@@ -16,15 +16,16 @@
 
 import { ERROR_CODE, MediagenError } from '../core/errors.js'
 import { geminiManifest } from './gemini/manifest.js'
+import { openaiManifest } from './openai/manifest.js'
 import type { MediaKind } from '../types/media.js'
 import type {
   GenerationClient,
   GenerationClientFactory,
+  Probe,
   ProviderManifest,
-  TextClient,
 } from '../types/provider.js'
 
-const MANIFESTS = [geminiManifest] as const
+const MANIFESTS = [geminiManifest, openaiManifest] as const
 
 /**
  * Derived from the manifests, so a provider cannot exist in the union but not
@@ -90,7 +91,7 @@ export function requireKindSupport(provider: ProviderManifest, kind: MediaKind):
  * The key is the pair, and `providerClients.test.ts` holds it to that.
  */
 const clientCache = new Map<string, GenerationClient>()
-const textClientCache = new Map<string, TextClient>()
+const probeCache = new Map<string, Probe>()
 
 export async function loadGenerationClient(
   provider: ProviderManifest,
@@ -117,20 +118,20 @@ export async function loadGenerationClient(
   return client
 }
 
-/** `undefined` where the provider exposes no text model to probe with (§4.5). */
-export async function loadTextClient(provider: ProviderManifest): Promise<TextClient | undefined> {
-  if (!provider.textClient) return undefined
+/** `undefined` where the provider offers no cheap request to verify a key with (§4.5). */
+export async function loadProbe(provider: ProviderManifest): Promise<Probe | undefined> {
+  if (!provider.probe) return undefined
 
-  const cached = textClientCache.get(provider.id)
+  const cached = probeCache.get(provider.id)
   if (cached) return cached
 
-  const client = (await provider.textClient())()
-  textClientCache.set(provider.id, client)
-  return client
+  const probe = await provider.probe()
+  probeCache.set(provider.id, probe)
+  return probe
 }
 
 /** Tests reset between cases; nothing in production has a reason to call this. */
 export function clearClientCache(): void {
   clientCache.clear()
-  textClientCache.clear()
+  probeCache.clear()
 }

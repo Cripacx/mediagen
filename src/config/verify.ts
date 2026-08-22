@@ -16,14 +16,11 @@
  * is not a reasonable thing to do behind the user's back.
  */
 
-import { loadTextClient } from '../providers/registry.js'
-import { silentLogger } from '../core/logger.js'
+import { loadProbe } from '../providers/registry.js'
 import { isMediagenError, ERROR_CODE } from '../core/errors.js'
 import type { ProviderManifest } from '../types/provider.js'
 import type { ResolvedConfig } from '../types/config.js'
 
-/** Smallest request that still exercises authentication. */
-const PROBE_PROMPT = 'ping'
 const PROBE_TIMEOUT_MS = 15_000
 
 export type VerificationStatus = 'ok' | 'rejected' | 'unreachable' | 'missing' | 'unverifiable'
@@ -92,26 +89,21 @@ export async function verifyKey(
     return { provider: provider.id, status: 'rejected', detail: 'The key is too short to be valid' }
   }
 
-  if (!provider.textClient || provider.textModel === undefined) {
+  if (!provider.probe) {
     return {
       provider: provider.id,
       status: 'unverifiable',
-      detail: 'This provider exposes no text model to probe cheaply',
+      detail: 'This provider offers no request cheap enough to verify a key with',
     }
   }
 
   try {
-    const client = await loadTextClient(provider)
-    if (!client) {
-      return { provider: provider.id, status: 'unverifiable', detail: 'No text client available' }
+    const probe = await loadProbe(provider)
+    if (!probe) {
+      return { provider: provider.id, status: 'unverifiable', detail: 'No probe available' }
     }
 
-    await client.complete(PROBE_PROMPT, {
-      apiKey,
-      model: provider.textModel,
-      log: silentLogger,
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-    })
+    await probe({ apiKey, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
 
     return { provider: provider.id, status: 'ok' }
   } catch (error) {

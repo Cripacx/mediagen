@@ -20,8 +20,8 @@ export type {
   Logger,
   ModelDescriptor,
   ProviderCredential,
+  Probe,
   ProviderManifest,
-  TextClient,
 } from './types/provider.js'
 export type { ConfigLayer, ConfigFile, Resolved, ResolvedConfig } from './types/config.js'
 export {

@@ -8,28 +8,32 @@ numbers there are stable references; the code cites them.
 
 ## Status
 
-Under construction, following the build order in §13.
+Every step of the build order in §13 is implemented, with two deliberate
+deviations noted below.
 
-| Step                                      | Spec            | State |
-| ----------------------------------------- | --------------- | ----- |
-| Skeleton, error taxonomy, domain types    | §2, §6.5, §12.2 | done  |
-| Core pipeline, one provider               | §1.2, §6        | next  |
-| CLI `image` with the output contract      | §4              |       |
-| Configuration, `config`, `doctor`, `init` | §3, §4.4–4.6    |       |
-| MCP server                                | §1.2            |       |
-| Further providers                         | §6.1            |       |
-| Model selection and `models`              | §7              |       |
-| Asynchronous providers and polling        | §6.2            |       |
-| Catalogue generation                      | §7.4            |       |
-| Content marking                           | §9              |       |
-| Skill                                     | §11             |       |
-| Video                                     | §10             |       |
+| Area                                      | Spec            |
+| ----------------------------------------- | --------------- |
+| Domain types, error taxonomy, toolchain   | §2, §6.5, §12.2 |
+| Core pipeline and output handling         | §1.2, §8        |
+| CLI, output contract and exit codes       | §4.1–4.3        |
+| Configuration: `config`, `doctor`, `init` | §3, §4.4–4.6    |
+| Providers: Gemini, OpenAI, Kie AI         | §6.1, §6.3–6.5  |
+| Model selection and `models`              | §7              |
+| Asynchronous providers and shared polling | §6.2            |
+| Catalogue generation from vendor docs     | §7.4            |
+| MCP server                                | §1.2            |
+| AI content marking                        | §9              |
+| Agent skill                               | §11             |
+| Video                                     | §10             |
 
 | Provider      | Images          | Video | Key verification         |
 | ------------- | --------------- | ----- | ------------------------ |
 | Google Gemini | yes             | yes   | live probe               |
 | OpenAI        | yes             | —     | live probe               |
 | Kie AI        | yes, ~30 models | —     | none cheap enough (§4.5) |
+
+No provider has yet been exercised against a live endpoint — see the note at
+the end.
 
 ## Development
 
@@ -41,6 +45,10 @@ npm run verify   # typecheck, lint, format, cycles, tests
 `npm test` builds first: the output-contract tests run the real `dist/bin.js`,
 because an in-process test can pass while the shipped binary writes a stray
 line to stdout.
+
+Tests never read your config file or inherit your API keys; `test/setup.ts`
+enforces that and `src/core/__tests__/isolation.test.ts` fails if it stops
+working (§12.1).
 
 ## Usage
 
@@ -97,10 +105,6 @@ The cost of this choice is real and worth naming: someone typing
 `mediagen image "a cat"` straight into a shell, with no model in the loop, gets
 exactly that prompt and a weaker image than §5 would have produced for them.
 
-Tests never read your config file or inherit your API keys; `test/setup.ts`
-enforces that and `src/core/__tests__/isolation.test.ts` fails if it stops
-working (§12.1).
-
 ## Installing
 
 ```bash
@@ -135,34 +139,68 @@ npx skills add Cripacx/mediagen --skill mediagen
 
 ## Releasing
 
-Three channels, in this order — the last two both point at the first, so npm
-has to go first.
+Releasing is one manual button: **Actions → Release → Run workflow**, with
+`patch`, `minor`, `major`, or an exact version.
 
-**1. npm.** `prepublishOnly` runs the full verification, so a broken build
-cannot ship.
+It is manual on purpose. npm unpublish is restricted to a short window and the
+MCP registry has no delete, so a release is a decision rather than something a
+merge does on your behalf. Tick **dry run** first to see what would happen
+without publishing anything.
+
+The workflow does all of it in order:
+
+1. `npm run verify` — nothing ships from a tree that does not pass
+2. bumps the version in `package.json` and `server.json` together
+3. commits, tags `vX.Y.Z`, pushes
+4. publishes to npm
+5. publishes to the MCP registry
+6. creates the GitHub Release with generated notes
+
+npm goes before the registry because the registry stores metadata only: an
+entry published first would point at a version nobody can install. The Release
+comes last, so it never points at something that does not exist yet.
+
+### One-time setup
+
+Neither destination needs a stored secret — both authenticate over GitHub OIDC.
+
+- **npm**: publish `mediagen` once by hand (`npm publish --access public`), then
+  on npmjs.com open the package settings and add a **trusted publisher**:
+  repository `Cripacx/mediagen`, workflow `release.yml`. From then on the
+  workflow publishes without a token, and npm attaches provenance
+  automatically.
+- **MCP registry**: nothing to configure. `mcp-publisher login github-oidc`
+  authenticates from the workflow, and ownership is proved by `mcpName` in
+  `package.json` matching `name` in `server.json`.
+- **The skill**: nothing at all. `npx skills add` reads the repository, so
+  pushing is the release.
+
+### Release notes
+
+GitHub builds them from pull requests merged since the last tag, grouped by the
+labels in [.github/release.yml](.github/release.yml). Work pushed straight to
+main shows up only in the compare link at the bottom — if you want the notes to
+read well, merge through pull requests, even self-approved ones.
+
+### Doing it by hand
 
 ```bash
-npm login
+node scripts/set-version.mjs patch   # or minor, major, or 1.2.3
+npm run verify
 npm publish --access public
+mcp-publisher login github && mcp-publisher publish
 ```
 
-**2. The MCP registry.** It hosts metadata only, which is why the package must
-exist first. Ownership is proved by `mcpName` in `package.json` matching
-`name` in `server.json`; a test keeps the two, and the version in three
-places, from drifting.
+`node scripts/set-version.mjs --check` fails if the three version fields ever
+drift apart; `npm test` checks the same thing.
 
-```bash
-mcp-publisher login github
-mcp-publisher validate
-mcp-publisher publish
-```
+## Not yet verified against a live endpoint
 
-**3. The skill.** Nothing to publish — `npx skills add` reads the GitHub
-repository directly, so pushing is the release. The layout it looks for is
-`skills/<name>/SKILL.md`.
-
-Bump the version in `package.json` **and** `server.json` together; `npm test`
-fails if they disagree.
+No generation has been run against a real provider — every test covers the
+paths around it: configuration, capability validation, polling states, file
+handling, marking against real images, and the MCP server over real stdio. The
+three `generate()` implementations are written against vendor documentation and
+SDK type declarations, and the first real key is what will confirm them.
 
 ## Licence
 

@@ -1,0 +1,31 @@
+# Shapes the notes `gh release create --generate-notes` produces.
+#
+# GitHub builds those notes from pull requests merged since the last tag, and
+# sorts them by label. Work pushed straight to main does not appear as an entry
+# — only in the compare link at the bottom. If you want readable release notes,
+# merge through pull requests, even ones you approve yourself.
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+    authors:
+      - dependabot
+  categories:
+    - title: Features
+      labels:
+        - feature
+        - enhancement
+    - title: Fixes
+      labels:
+        - bug
+        - fix
+    - title: Providers
+      labels:
+        - provider
+    - title: Documentation and the skill
+      labels:
+        - documentation
+        - skill
+    - title: Everything else
+      labels:
+        - '*'

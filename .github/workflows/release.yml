@@ -1,0 +1,144 @@
+name: Release
+
+# Manual, on purpose. Publishing to npm and to the MCP registry cannot be
+# undone — npm unpublish is restricted to a short window and the registry has
+# no delete — so a release is something a person decides to do, not something
+# a merge does on their behalf.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version to release: major, minor, patch, or an exact version like 1.2.3'
+        required: true
+        default: patch
+        type: string
+      dry_run:
+        description: 'Do everything except the irreversible parts: no push, no publish, no release'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  # Two releases at once would race on the tag and on the npm version.
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Push the version commit and tag, and create the GitHub Release.
+      contents: write
+      # OIDC, for npm trusted publishing and for the MCP registry. Neither
+      # needs a stored token as a result.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Release notes are generated from history, which a shallow clone
+          # does not have.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm 11.5.1 or later; Node 22 ships npm 10, so
+      # without this the publish falls back to wanting a token it does not have
+      # and fails at the last step.
+      - name: Use an npm that supports trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Nothing is published from a tree that does not pass. This is the same
+      # gate CI runs, before anything irreversible happens.
+      - name: Verify
+        run: npm run verify
+
+      - name: Set the version
+        id: version
+        run: |
+          VERSION="$(node scripts/set-version.mjs '${{ inputs.bump }}')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      - name: Confirm the version is consistent everywhere
+        run: node scripts/set-version.mjs --check
+
+      - name: Refuse to release a tag that already exists
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "::error::${{ steps.version.outputs.tag }} already exists. Pick a different version."
+            exit 1
+          fi
+
+      - name: Summarise what would happen
+        if: inputs.dry_run
+        run: |
+          {
+            echo "### Dry run — nothing was published"
+            echo
+            echo "Would release **${{ steps.version.outputs.version }}** as \`${{ steps.version.outputs.tag }}\`:"
+            echo
+            echo "- npm package \`mediagen\`"
+            echo "- MCP registry entry \`io.github.cripacx/mediagen\`"
+            echo "- a GitHub Release with generated notes"
+          } >> "$GITHUB_STEP_SUMMARY"
+          git --no-pager diff --stat
+
+      - name: Commit and tag
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json server.json
+          git commit -m 'Release ${{ steps.version.outputs.version }}'
+          git tag -a '${{ steps.version.outputs.tag }}' -m 'Release ${{ steps.version.outputs.version }}'
+          git push origin HEAD --follow-tags
+
+      # npm goes first: the MCP registry stores metadata only, so an entry
+      # published before the package would point at a version nobody can
+      # install. Trusted publishing supplies the credentials over OIDC and
+      # attaches provenance automatically — there is no NPM_TOKEN.
+      - name: Publish to npm
+        if: ${{ !inputs.dry_run }}
+        run: npm publish --access public
+
+      - name: Install mcp-publisher
+        if: ${{ !inputs.dry_run }}
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Publish to the MCP registry
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+
+      # Last, so a release only exists once the things it points at do.
+      - name: Create the GitHub Release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ steps.version.outputs.tag }}' \
+            --title '${{ steps.version.outputs.version }}' \
+            --generate-notes \
+            --verify-tag
+
+      - name: Summarise
+        if: ${{ !inputs.dry_run }}
+        run: |
+          {
+            echo "### Released ${{ steps.version.outputs.version }}"
+            echo
+            echo "- npm: https://www.npmjs.com/package/mediagen/v/${{ steps.version.outputs.version }}"
+            echo "- release: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+          } >> "$GITHUB_STEP_SUMMARY"

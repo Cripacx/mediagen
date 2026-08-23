@@ -119,7 +119,38 @@ echo "$GEMINI_API_KEY" | npx -y mediagen config set gemini --stdin
 npx -y mediagen config set gemini-model gemini-3-pro-image
 ```
 
-To check what is configured and whether it still works:
+### Which provider gets used
+
+Set the order you prefer, most preferred first:
+
+```bash
+npx -y mediagen config set provider-priority gemini,kie,openai
+```
+
+It is a preference, not a whitelist. A request with no `--provider` goes to the
+first provider in the order that has a key **and** can do the job — so a
+missing OpenAI key never stops something Gemini can do, and asking for video
+skips straight past the providers that do not make any. Naming `--provider`
+overrides all of it.
+
+`mediagen models` shows the resulting order, which providers are usable, and
+what a request would get:
+
+```
+1. Google Gemini (gemini)  [preferred, key from config file]
+  Would use: gemini-3.1-flash-image  (provider default)
+2. Kie AI (kie)  [key from config file]
+3. OpenAI (openai)  [preferred, no key]
+  No key configured, so requests to it fail. Fix: mediagen config set openai
+
+A request with no --provider uses gemini/gemini-3.1-flash-image.
+```
+
+With `--json` it adds `wouldUse`, `usableProviders` and `providerPriority`.
+That is what the skill has an agent read before generating, so it never picks
+a model from a provider you have no key for.
+
+To check what is configured and whether the keys still work:
 
 ```bash
 npx -y mediagen doctor
@@ -141,7 +172,7 @@ directory, then the config file:
 | Variable                                          | Purpose                        |
 | ------------------------------------------------- | ------------------------------ |
 | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `KIE_API_KEY` | credentials; at least one      |
-| `MEDIAGEN_PROVIDER`                               | default provider               |
+| `MEDIAGEN_PROVIDER_PRIORITY`                      | providers in preference order  |
 | `GEMINI_MODEL`, `OPENAI_MODEL`, `KIE_MODEL`       | default model per provider     |
 | `MEDIAGEN_OUTPUT_DIR`                             | where media is saved           |
 | `MEDIAGEN_QUALITY`                                | `fast`, `balanced`, `quality`  |

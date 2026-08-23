@@ -75,8 +75,55 @@ make the call, generate, and say what you assumed.
 
 ## Choosing a provider
 
-Run `npx -y mediagen models --json` to see what is configured and what each provider
-would use. As a starting point:
+**Run `npx -y mediagen models --json` before generating.** Not as a formality:
+the user has keys for some providers and not others, and has an order they
+prefer. Neither is guessable, and a model from an unconfigured provider fails
+after you have already committed to it.
+
+What comes back:
+
+```json
+{
+  "kind": "image",
+  "wouldUse": { "provider": "gemini", "model": "gemini-3.1-flash-image" },
+  "usableProviders": ["gemini", "kie"],
+  "providerPriority": ["gemini", "kie", "openai"],
+  "providers": [
+    { "provider": "gemini", "usable": true, "preferred": true, "rank": 1, "listed": ["…"] },
+    {
+      "provider": "openai",
+      "usable": false,
+      "configured": false,
+      "fix": "mediagen config set openai"
+    }
+  ]
+}
+```
+
+Read it in this order:
+
+1. **`wouldUse`** — what a request with no `--provider` gets. If it suits the
+   task, pass neither flag and let it happen. This already honours the user's
+   priority and skips anything unconfigured.
+2. **`usableProviders`** — the only ones you may name. A provider outside this
+   list has no key; naming it produces a `CONFIG_ERROR`, not an image.
+3. **`providerPriority`** — the user's stated order. Prefer earlier entries
+   when more than one usable provider fits. Their order beats the guidance in
+   the table below.
+4. **`listed`** per provider — the models, with their capabilities.
+
+If nothing is usable, `wouldUse` is `null` and `usableProviders` is empty. Do
+not generate: tell the user, and pass on the `fix` command for whichever
+provider suits the task.
+
+Mention an unconfigured provider only when it would genuinely have been the
+better choice — "OpenAI would suit this, but has no key; `mediagen config set
+openai` adds one". Do not list every missing key on every run.
+
+### What each provider is good at
+
+Applies only to providers in `usableProviders`, and yields to the user's
+priority order when both fit.
 
 | Task                                | Provider                                                      | Why                                                                      |
 | ----------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -91,9 +138,13 @@ would use. As a starting point:
 only. It genuinely cannot do 16:9 — asking for one is rejected rather than
 silently served as 3:2. For anything wider than 3:2, use `gemini`.
 
-Do not guess model ids. `npx -y mediagen models --json` lists them, and an id absent
-from the list is still sent to the provider rather than rejected — so a newly
-released model works before this skill knows about it.
+Do not guess model ids. The `listed` array has them, and an id absent from it
+is still sent to the provider rather than rejected — so a newly released model
+works before this skill knows about it.
+
+**When the user names a provider or model, use it as given** — even if it is
+not their configured first preference. Priority is what to do when nobody
+said.
 
 ## Options worth knowing
 

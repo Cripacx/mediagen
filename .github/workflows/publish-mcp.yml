@@ -53,14 +53,30 @@ jobs:
           node scripts/set-version.mjs --check
           npm test -- src/cli/__tests__/packaging.test.ts
 
-      - name: Refuse to register a version npm does not have
+      # Two things about the published package, both of which the registry
+      # checks and neither of which this checkout can speak for.
+      #
+      # Ownership is proved by the `mcpName` inside the *published tarball*,
+      # not the one in this tree. npm versions are immutable, so correcting a
+      # wrong name here does nothing for a version already out — it takes a new
+      # release. That is worth saying plainly rather than as a 400.
+      - name: Refuse to register something npm cannot back
         run: |
           VERSION="$(node -p 'require("./package.json").version')"
+          EXPECTED="$(node -p 'require("./server.json").name')"
+
           if ! npm view "mediagen@$VERSION" version >/dev/null 2>&1; then
             echo "::error::mediagen@$VERSION is not on npm. The registry would point at something nobody can install."
             exit 1
           fi
-          echo "Registering mediagen@$VERSION"
+
+          PUBLISHED="$(npm view "mediagen@$VERSION" mcpName 2>/dev/null || true)"
+          if [ "$PUBLISHED" != "$EXPECTED" ]; then
+            echo "::error::mediagen@$VERSION was published declaring mcpName '$PUBLISHED', but this manifest is '$EXPECTED'. A published version cannot be amended — cut a new release so npm carries the corrected name."
+            exit 1
+          fi
+
+          echo "Registering mediagen@$VERSION as $EXPECTED"
 
       - name: Install mcp-publisher
         run: |

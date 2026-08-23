@@ -7,12 +7,30 @@
 Give your agent image and video generation across **Google Gemini**, **OpenAI**
 and **Kie AI** — one skill, one install, no API to learn.
 
+Say roughly what you want and let it decide the rest:
+
 ```
 You:   Make a hero image for the landing page, wide, something moody and industrial.
 
 Agent: [writes a full prompt, picks Gemini for 21:9, generates]
        → ./output/image-20260823T094107Z.png
 ```
+
+Or be exact, and it stops deciding:
+
+```
+You:   Same thing with gemini-3-pro-image, 21:9, 4K, marked as AI-generated,
+       saved as hero.png.
+
+Agent: [passes all of it through unchanged]
+       → ./output/hero.png
+```
+
+Anything the CLI takes can be asked for in words — provider, model, aspect
+ratio, size, output name and directory, quality preset, video duration, an
+input image to edit, and whether to mark the result. Name any of them and the
+agent uses it as given; leave it out and it chooses, or falls back to what you
+configured.
 
 ## Install
 
@@ -42,6 +60,9 @@ Now just ask your agent for an image.
 - **Choose the right provider** for the task — the skill knows Gemini handles
   21:9 and video, that OpenAI cannot do 16:9 at all, and that Kie aggregates
   around thirty third-party models
+- **Take your instructions literally when you give them.** Name a model, a
+  ratio, a size or a filename and it is used as stated. `mediagen models` is
+  there when you want to see what is available before choosing
 - **Write the prompt properly.** The skill carries prompt-writing guidance, so
   "a hero image, moody and industrial" becomes a full description of subject,
   composition, light, camera and materials before anything is sent

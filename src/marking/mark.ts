@@ -21,6 +21,13 @@
  * digital source type, its metadata is left alone and that is reported. If it
  * carries other metadata without a source type, the marker is added to it
  * rather than replacing it.
+ *
+ * **A visible label never overwrites its source.** Compositing one is the only
+ * thing here that destroys pixels, and an image is worth more than the label
+ * on it: a badly placed label can be redone from an untouched original, and
+ * cannot be undone from anything else. Callers that want one pass an
+ * `outputPath` and get a second file. The machine-readable marker has no such
+ * problem — it adds metadata and changes nothing — so it is written in place.
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
@@ -96,6 +103,11 @@ export interface MarkingOptions {
    * image is calmest. Defaults to bottom-right.
    */
   readonly labelPosition?: LabelPosition
+  /**
+   * Where to write the result. Omitted means in place, which is refused for a
+   * visible label — see the note at the top of this file.
+   */
+  readonly outputPath?: string
 }
 
 /** What produced the media, recorded alongside the marker. */
@@ -105,7 +117,10 @@ export interface MarkingProvenance {
 }
 
 export interface MarkingResult {
+  /** What was written. The source when marking in place, otherwise the copy. */
   readonly filePath: string
+  /** The untouched source, when a visible label was written to a copy. */
+  readonly sourcePath?: string
   /** Where the visible label went, once `auto` has been resolved. */
   readonly labelPosition?: Corner
   /** True when this call wrote the machine-readable marker. */
@@ -133,6 +148,18 @@ export async function markFile(
       alreadyMarked: false,
       visibleLabelWritten: false,
     }
+  }
+
+  const destination = options.outputPath ?? filePath
+
+  if (options.visibleLabel && destination === filePath) {
+    throw new MediagenError(
+      ERROR_CODE.VALIDATION_ERROR,
+      'A visible label would overwrite the original.',
+      {
+        hint: 'Name where the labelled copy should go, or pass --in-place to accept the loss.',
+      },
+    )
   }
 
   const original = await readFile(filePath).catch(() => {
@@ -191,19 +218,27 @@ export async function markFile(
     })
   })
 
-  await writeFile(filePath, marked).catch(() => {
-    throw new MediagenError(ERROR_CODE.FILE_ERROR, `Cannot write ${filePath}.`, {
-      hint: 'Check that the file is not read-only.',
+  await writeFile(destination, marked).catch(() => {
+    throw new MediagenError(ERROR_CODE.FILE_ERROR, `Cannot write ${destination}.`, {
+      hint: 'Check that the path exists and is writable.',
     })
   })
 
   return {
-    filePath,
+    filePath: destination,
+    ...(destination === filePath ? {} : { sourcePath: filePath }),
     machineReadableWritten,
     alreadyMarked,
     visibleLabelWritten: options.visibleLabel,
     ...(placedAt === undefined ? {} : { labelPosition: placedAt }),
   }
+}
+
+/** `photo.png` becomes `photo.labelled.png`, beside the original. */
+export function labelledPathFor(filePath: string): string {
+  const extension = path.extname(filePath)
+  const stem = extension === '' ? filePath : filePath.slice(0, -extension.length)
+  return `${stem}.labelled${extension}`
 }
 
 function requireMarkable(filePath: string, data: Uint8Array): void {

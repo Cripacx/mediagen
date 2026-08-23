@@ -5,7 +5,7 @@
 
 import { Command } from 'commander'
 import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../../core/errors.js'
-import { markFile, type MarkingResult } from '../../marking/mark.js'
+import { labelledPathFor, markFile, type MarkingResult } from '../../marking/mark.js'
 import { LABEL_POSITIONS, isLabelPosition } from '../../marking/position.js'
 import { reportError, writeJson, writeLine, type Outcome } from '../output.js'
 
@@ -14,6 +14,8 @@ interface MarkOptions {
   noMark?: boolean
   modified?: boolean
   labelPosition?: string
+  inPlace?: boolean
+  output?: string
   model?: string
   provider?: string
   json?: boolean
@@ -29,6 +31,8 @@ export function buildMarkCommand(outcome: Outcome): Command {
       '--label-position <where>',
       `where the visible label sits: ${LABEL_POSITIONS.join(', ')}`,
     )
+    .option('--output <path>', 'where the labelled copy goes; only with a single file')
+    .option('--in-place', 'overwrite the original with the labelled version')
     .option('--no-mark', 'skip the machine-readable marker (use with --visible-label)')
     .option('--provider <name>', 'record which provider produced it')
     .option('--model <id>', 'record which model produced it')
@@ -43,6 +47,12 @@ command; --visible-label composites the European Commission's official label.
 
 That label comes in two forms. By default it claims the media was generated
 outright; --modified claims a model altered media a person made.
+
+A visible label destroys pixels, so it is written to a copy named alongside the
+original — photo.png becomes photo.labelled.png — and the original is left as
+it was. --output names the copy; --in-place overwrites instead, which cannot be
+undone. The machine-readable marker only adds metadata and is always written in
+place.
 
 A file that already declares a digital source type is left as it is and
 reported, rather than having whatever the provider recorded overwritten.
@@ -61,6 +71,16 @@ a test-signed manifest would look like provenance while carrying none.`,
           })
         }
 
+        const wantsLabel = options.visibleLabel === true
+
+        if (options.output !== undefined && files.length > 1) {
+          throw new MediagenError(
+            ERROR_CODE.VALIDATION_ERROR,
+            '--output names one file, but several were given.',
+            { hint: 'Drop --output and each labelled copy is named after its original.' },
+          )
+        }
+
         const results: MarkingResult[] = []
         for (const file of files) {
           results.push(
@@ -71,6 +91,9 @@ a test-signed manifest would look like provenance while carrying none.`,
                 visibleLabel: options.visibleLabel === true,
                 labelKind: options.modified === true ? 'modified' : 'generated',
                 ...position(options.labelPosition),
+                ...(wantsLabel && options.inPlace !== true
+                  ? { outputPath: options.output ?? labelledPathFor(file) }
+                  : {}),
               },
               {
                 ...(options.provider === undefined ? {} : { provider: options.provider }),
@@ -95,6 +118,7 @@ function report(results: readonly MarkingResult[], json: boolean): ExitCode {
 
   for (const result of results) {
     const notes: string[] = []
+    if (result.sourcePath !== undefined) notes.push(`copied from ${result.sourcePath}`)
     if (result.machineReadableWritten) notes.push('marked')
     if (result.alreadyMarked) notes.push('already declared a source type, left as it was')
     if (result.visibleLabelWritten) {

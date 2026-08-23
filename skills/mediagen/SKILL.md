@@ -126,28 +126,33 @@ picks the right variant on its own: "AI GENERATED" for a prompt-only image,
 "AI MODIFIED" when `--input` was used. Suggest it when the image will be shown
 to an audience who might otherwise take it for a photograph.
 
-### Marking in two passes
+### Mark in a second pass
 
-When an image needs a visible label and you can see images, do it in two steps
-rather than one:
+**Prefer this over `--visible-label` during generation.** A visible label
+destroys pixels, and where it should go depends on where the subject actually
+ended up — which only the finished image can tell you.
 
 1. **Generate without `--visible-label`.** The saved path comes back on stdout.
 2. **Open the image and look at it.** You wrote the prompt, but the model
-   decided the composition — where the subject actually ended up is something
-   only the file can tell you.
+   decided the composition.
 3. **Mark it, naming the corner** that covers nothing important:
 
 ```bash
 npx -y mediagen mark ./output/image-….png --visible-label --label-position top-left
 ```
 
-`mediagen mark` is idempotent for the machine-readable marker — a file that
-already declares a source type is left alone and says so — so this second pass
-is safe on media that was already marked at generation time.
+That writes `image-….labelled.png` beside the original and leaves the original
+exactly as generated. Both files stay on disk, so a badly placed label costs
+nothing but a rerun of step 3.
 
-Generate with `--visible-label` in one pass when you cannot view images, or
-when the caller asked for a specific corner up front and there is nothing to
-look at first.
+The machine-readable marker is separate and safe to apply at generation time:
+`--mark` only adds metadata. A file that already declares a source type is left
+alone and says so, so a second pass never double-marks.
+
+Use `--visible-label` during generation only when you cannot view images. It
+still writes the label to a copy rather than over the original, and reports
+both paths — `filePath` is the labelled one, `originalPath` the untouched
+generation.
 
 ### Where the label goes
 

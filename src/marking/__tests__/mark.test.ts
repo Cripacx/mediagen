@@ -10,7 +10,12 @@ import { tmpdir } from 'node:os'
 import * as path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import sharp from 'sharp'
-import { TRAINED_ALGORITHMIC_MEDIA, hasDigitalSourceType, markFile } from '../mark.js'
+import {
+  TRAINED_ALGORITHMIC_MEDIA,
+  hasDigitalSourceType,
+  labelledPathFor,
+  markFile,
+} from '../mark.js'
 import { ERROR_CODE } from '../../core/errors.js'
 
 let directory: string
@@ -82,6 +87,21 @@ async function countPixels(filePath: string, matches: (value: number) => boolean
     if (matches(data[index]!)) count += 1
   }
   return count
+}
+
+/** Applies a visible label to a copy and returns where it landed. */
+async function label(
+  filePath: string,
+  options: Omit<Parameters<typeof markFile>[1], 'visibleLabel' | 'outputPath'> = {
+    machineReadable: false,
+  },
+): Promise<string> {
+  const result = await markFile(filePath, {
+    ...options,
+    visibleLabel: true,
+    outputPath: labelledPathFor(filePath),
+  })
+  return result.filePath
 }
 
 async function xmpOf(filePath: string): Promise<string | undefined> {
@@ -172,10 +192,45 @@ describe('the visible label', () => {
     const file = await makePng()
     const before = await sharp(file).raw().toBuffer()
 
-    await markFile(file, { machineReadable: false, visibleLabel: true })
+    const result = await markFile(file, {
+      machineReadable: false,
+      visibleLabel: true,
+      outputPath: labelledPathFor(file),
+    })
 
-    const after = await sharp(file).raw().toBuffer()
-    expect(Buffer.compare(before, after)).not.toBe(0)
+    // The original is untouched; the copy is what changed.
+    expect(await sharp(file).raw().toBuffer()).toEqual(before)
+    expect(Buffer.compare(before, await sharp(result.filePath).raw().toBuffer())).not.toBe(0)
+  })
+
+  it('refuses to overwrite the original with a labelled version', async () => {
+    // A label placed badly can be redone from an untouched original and from
+    // nothing else, so overwriting has to be asked for explicitly.
+    const file = await makePng()
+
+    await expect(
+      markFile(file, { machineReadable: false, visibleLabel: true }),
+    ).rejects.toMatchObject({ code: ERROR_CODE.VALIDATION_ERROR })
+  })
+
+  it('reports both paths so neither has to be guessed', async () => {
+    const file = await makeSolid('both.png', { r: 250, g: 250, b: 250 })
+
+    const result = await markFile(file, {
+      machineReadable: true,
+      visibleLabel: true,
+      outputPath: labelledPathFor(file),
+    })
+
+    expect(result.sourcePath).toBe(file)
+    expect(result.filePath).toBe(labelledPathFor(file))
+    expect(result.filePath).not.toBe(result.sourcePath)
+  })
+
+  it('names the copy beside the original', () => {
+    expect(labelledPathFor('/tmp/photo.png')).toBe('/tmp/photo.labelled.png')
+    expect(labelledPathFor('photo.jpeg')).toBe('photo.labelled.jpeg')
+    expect(labelledPathFor('noextension')).toBe('noextension.labelled')
   })
 
   it('fits on an image far smaller than the label is wide', async () => {
@@ -183,11 +238,14 @@ describe('the visible label', () => {
     // unclamped label turns a request for a disclosure into an error.
     const tiny = await makePng('tiny.png', 40, 24)
 
-    await expect(
-      markFile(tiny, { machineReadable: false, visibleLabel: true }),
-    ).resolves.toMatchObject({ visibleLabelWritten: true })
+    const marked = await markFile(tiny, {
+      machineReadable: false,
+      visibleLabel: true,
+      outputPath: labelledPathFor(tiny),
+    })
+    expect(marked.visibleLabelWritten).toBe(true)
 
-    const after = await sharp(tiny).metadata()
+    const after = await sharp(marked.filePath).metadata()
     expect(after.width).toBe(40)
     expect(after.height).toBe(24)
   })
@@ -195,9 +253,13 @@ describe('the visible label', () => {
   it('leaves the image its original size', async () => {
     const file = await makePng('sized.png', 800, 400)
 
-    await markFile(file, { machineReadable: false, visibleLabel: true })
+    const result = await markFile(file, {
+      machineReadable: false,
+      visibleLabel: true,
+      outputPath: labelledPathFor(file),
+    })
 
-    const after = await sharp(file).metadata()
+    const after = await sharp(result.filePath).metadata()
     expect(after.width).toBe(800)
     expect(after.height).toBe(400)
   })
@@ -208,20 +270,24 @@ describe('the visible label', () => {
     const dark = await makeSolid('dark.png', { r: 8, g: 8, b: 10 })
     const light = await makeSolid('light.png', { r: 245, g: 245, b: 240 })
 
-    await markFile(dark, { machineReadable: false, visibleLabel: true })
-    await markFile(light, { machineReadable: false, visibleLabel: true })
+    const darkLabelled = await label(dark)
+    const lightLabelled = await label(light)
 
-    expect(await countPixels(dark, (value) => value > 150)).toBeGreaterThan(500)
-    expect(await countPixels(light, (value) => value < 100)).toBeGreaterThan(500)
+    expect(await countPixels(darkLabelled, (value) => value > 150)).toBeGreaterThan(500)
+    expect(await countPixels(lightLabelled, (value) => value < 100)).toBeGreaterThan(500)
   })
 
   it('defaults to the bottom-right corner', async () => {
     const file = await makeSolid('pos.png', { r: 250, g: 250, b: 250 })
 
-    const result = await markFile(file, { machineReadable: false, visibleLabel: true })
+    const result = await markFile(file, {
+      machineReadable: false,
+      visibleLabel: true,
+      outputPath: labelledPathFor(file),
+    })
 
     expect(result.labelPosition).toBe('bottom-right')
-    expect(await darkBounds(file)).toMatchObject({ right: true, bottom: true })
+    expect(await darkBounds(result.filePath)).toMatchObject({ right: true, bottom: true })
   })
 
   it('puts the label where it is told', async () => {
@@ -231,10 +297,11 @@ describe('the visible label', () => {
       machineReadable: false,
       visibleLabel: true,
       labelPosition: 'top-left',
+      outputPath: labelledPathFor(file),
     })
 
     expect(result.labelPosition).toBe('top-left')
-    expect(await darkBounds(file)).toMatchObject({ right: false, bottom: false })
+    expect(await darkBounds(result.filePath)).toMatchObject({ right: false, bottom: false })
   })
 
   it('auto places the label in the calmest corner', async () => {
@@ -261,6 +328,7 @@ describe('the visible label', () => {
       machineReadable: false,
       visibleLabel: true,
       labelPosition: 'auto',
+      outputPath: labelledPathFor(file),
     })
 
     expect(result.labelPosition?.endsWith('left')).toBe(true)
@@ -280,26 +348,28 @@ describe('the visible label', () => {
     const generated = await makeSolid('gen.png', { r: 250, g: 250, b: 250 })
     const modified = await makeSolid('mod.png', { r: 250, g: 250, b: 250 })
 
-    await markFile(generated, { machineReadable: false, visibleLabel: true })
-    await markFile(modified, {
-      machineReadable: false,
-      visibleLabel: true,
-      labelKind: 'modified',
-    })
+    const a = await sharp(await label(generated))
+      .raw()
+      .toBuffer()
+    const b = await sharp(await label(modified, { machineReadable: false, labelKind: 'modified' }))
+      .raw()
+      .toBuffer()
 
-    const a = await sharp(generated).raw().toBuffer()
-    const b = await sharp(modified).raw().toBuffer()
     expect(Buffer.compare(a, b)).not.toBe(0)
   })
 
   it('is independent of the machine-readable marker', async () => {
     const file = await makePng()
 
-    const result = await markFile(file, { machineReadable: false, visibleLabel: true })
+    const result = await markFile(file, {
+      machineReadable: false,
+      visibleLabel: true,
+      outputPath: labelledPathFor(file),
+    })
 
     expect(result.visibleLabelWritten).toBe(true)
     expect(result.machineReadableWritten).toBe(false)
-    expect(hasDigitalSourceType(await xmpOf(file))).toBe(false)
+    expect(hasDigitalSourceType(await xmpOf(result.filePath))).toBe(false)
   })
 })
 

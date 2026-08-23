@@ -194,6 +194,18 @@ second claim for a file it cannot infer it from.
 It sits bottom-right by default. `--label-position` moves it to another corner,
 or `auto` puts it wherever the image has the least detail.
 
+> [!IMPORTANT]
+> A visible label is never written over its source. `mediagen mark photo.png
+--visible-label` produces `photo.labelled.png` and leaves `photo.png` exactly
+> as it was; generating with `--visible-label` does the same, reporting the
+> labelled copy as `filePath` and the untouched generation as `originalPath`.
+> A label placed badly can be redone from an untouched original and from
+> nothing else. `--in-place` overwrites if you really mean to.
+
+The best order is to generate, look at the result, then mark it — the right
+corner depends on where the subject ended up, which only the finished image
+shows.
+
 `mediagen mark <file…>` applies them to media that already exists, in place.
 Existing provider metadata is never overwritten, and a second pass does not
 mark twice.

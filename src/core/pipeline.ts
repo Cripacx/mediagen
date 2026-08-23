@@ -15,7 +15,7 @@
 
 import { loadGenerationClient, requireKindSupport, requireProvider } from '../providers/registry.js'
 import { requireApiKey } from '../config/resolve.js'
-import { markFile } from '../marking/mark.js'
+import { labelledPathFor, markFile } from '../marking/mark.js'
 import type { LabelPosition } from '../marking/position.js'
 import { defaultStem, saveMedia } from './output.js'
 import type { GenerationRequest, GenerationResult, QualityPreset } from '../types/media.js'
@@ -104,6 +104,13 @@ export async function generate(
   const machineReadable = request.mark ?? config.mark.value
   const visibleLabel = request.visibleLabel ?? config.visibleLabel.value
 
+  // The generated file is never overwritten with a labelled version. A visible
+  // label destroys pixels, and a label placed badly can be redone from an
+  // untouched original but from nothing else. When one is asked for it goes
+  // beside the original, and the original stays exactly as generated.
+  let reportedPath = saved.filePath
+  let originalPath: string | undefined
+
   if (machineReadable || visibleLabel) {
     const marking = await markFile(
       saved.filePath,
@@ -116,6 +123,7 @@ export async function generate(
         ...(request.labelPosition === undefined
           ? {}
           : { labelPosition: request.labelPosition as LabelPosition }),
+        ...(visibleLabel ? { outputPath: labelledPathFor(saved.filePath) } : {}),
       },
       { provider: provider.id, model },
     )
@@ -123,10 +131,19 @@ export async function generate(
     if (marking.alreadyMarked && machineReadable) {
       log.info(`${provider.label} already declared a digital source type; left as it was.`)
     }
+
+    if (marking.sourcePath !== undefined) {
+      // The labelled copy is what was asked for, so it is the answer; the
+      // original is reported alongside rather than left to be guessed at.
+      reportedPath = marking.filePath
+      originalPath = marking.sourcePath
+      log.info(`Unlabelled original kept at ${marking.sourcePath}`)
+    }
   }
 
   return {
-    filePath: saved.filePath,
+    filePath: reportedPath,
+    ...(originalPath === undefined ? {} : { originalPath }),
     kind: request.kind,
     provider: provider.id,
     model,

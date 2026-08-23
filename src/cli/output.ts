@@ -55,6 +55,7 @@ export function reportResult(result: GenerationResult, json: boolean): ExitCode 
     writeJson({
       success: true,
       filePath: result.filePath,
+      ...(result.originalPath === undefined ? {} : { originalPath: result.originalPath }),
       kind: result.kind,
       provider: result.provider,
       model: result.model,
@@ -66,6 +67,9 @@ export function reportResult(result: GenerationResult, json: boolean): ExitCode 
   }
 
   writeLine(`Generated ${result.kind} with ${result.provider}/${result.model}`)
+  if (result.originalPath !== undefined) {
+    writeLine(`Unlabelled original: ${result.originalPath}`)
+  }
   // The saved path is the last line, so `$(mediagen image …| tail -1)`
   // is a supported way to use this.
   writeLine(result.filePath)

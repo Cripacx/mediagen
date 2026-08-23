@@ -58,7 +58,14 @@ export interface GenerationRequest {
  * returned one.
  */
 export interface GenerationResult {
+  /** What to use. The labelled copy when one was asked for, else the original. */
   readonly filePath: string
+  /**
+   * The generated file with no visible label composited into it, when a
+   * labelled copy was made. Always present on disk; only reported when it
+   * differs from `filePath`.
+   */
+  readonly originalPath?: string
   readonly kind: MediaKind
   readonly provider: string
   readonly model: string

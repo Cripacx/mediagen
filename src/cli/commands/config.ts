@@ -20,7 +20,7 @@ import { QUALITY_PRESETS, isQualityPreset } from '../../types/media.js'
 import { buildConfigEditCommand } from './configEdit.js'
 import { readSecret } from '../secretInput.js'
 import { reportError, writeDiagnostic, writeJson, writeLine, type Outcome } from '../output.js'
-import type { ConfigFile, Resolved } from '../../types/config.js'
+import type { ConfigFile, Resolved, ResolvedConfig } from '../../types/config.js'
 
 interface CommonOptions {
   json?: boolean
@@ -159,9 +159,31 @@ async function runSet(args: string[], fromStdin: boolean, json: boolean): Promis
 }
 
 function applySetting(file: ConfigFile, key: string, value: string): ConfigFile {
+  if (key === 'provider-priority') {
+    // Every name is checked, so a typo is reported here rather than silently
+    // dropped when the order is next read.
+    const ids = value
+      .split(/[,\s]+/)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry !== '')
+      .map((entry) => requireProvider(entry).id)
+
+    if (ids.length === 0) {
+      throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, 'No providers named.', {
+        hint: `Give an ordered list, most preferred first: ${PROVIDER_IDS.join(',')}`,
+      })
+    }
+
+    // `defaultProvider` is what this setting replaced. Leaving it behind would
+    // let a stale value reappear if the list were later removed.
+    const { defaultProvider: _replaced, ...rest } = file
+    return { ...rest, providerPriority: [...new Set(ids)] }
+  }
+
   if (key === 'default-provider') {
-    requireProvider(value)
-    return { ...file, defaultProvider: value }
+    // Still accepted, still meaningful: one provider is a one-entry order.
+    const { defaultProvider: _replaced, ...rest } = file
+    return { ...rest, providerPriority: [requireProvider(value).id] }
   }
 
   if (key === 'output-dir') {
@@ -284,11 +306,16 @@ interface Row {
   readonly secret: boolean
 }
 
+/** Renders the order as one value, so it reads like every other setting. */
+function priorityRow(priority: ResolvedConfig['providerPriority']): Resolved<string> {
+  return { ...priority, value: priority.value.join(',') }
+}
+
 function rows(): Row[] {
   const config = loadConfig()
 
   const result: Row[] = [
-    describe('default-provider', config.defaultProvider, false),
+    describe('provider-priority', priorityRow(config.providerPriority), false),
     describe('output-dir', config.outputDir, false),
     describe('quality', config.quality, false),
     describe('mark', config.mark, false),
@@ -419,8 +446,9 @@ function removeSetting(file: ConfigFile, key: string): ConfigFile {
   }
 
   switch (key) {
+    case 'provider-priority':
     case 'default-provider': {
-      const { defaultProvider: _d, ...rest } = file
+      const { defaultProvider: _d, providerPriority: _p, ...rest } = file
       return rest
     }
     case 'output-dir': {

@@ -111,6 +111,64 @@ export async function pickProvider(
   })
 }
 
+/**
+ * Builds a preference order by asking for one provider at a time.
+ *
+ * Repeated single choices rather than a reorderable list: the prompt library
+ * has no drag-to-reorder, and "which do you want first" is a question people
+ * answer without being taught anything. Stopping early is allowed — whatever
+ * is left keeps its existing order behind the choices made, because the list
+ * expresses preference and never restricts what may be used.
+ */
+export async function pickPriority(
+  providers: readonly ProviderManifest[],
+  current: readonly string[],
+  configured: (providerId: string) => boolean,
+): Promise<string[]> {
+  const { select } = await import('@inquirer/prompts')
+
+  const ordered: string[] = []
+  const remaining = [...current.filter((id) => providers.some((p) => p.id === id))]
+  for (const provider of providers) {
+    if (!remaining.includes(provider.id)) remaining.push(provider.id)
+  }
+
+  const DONE = Symbol('done')
+
+  while (remaining.length > 1) {
+    const position = ordered.length + 1
+    const choice = await select<string | typeof DONE>({
+      message: position === 1 ? 'Which provider first?' : `Which provider ${nth(position)}?`,
+      choices: [
+        ...remaining.map((id) => {
+          const label = providers.find((entry) => entry.id === id)?.label
+          return {
+            name: configured(id) ? id : `${id}  (no key yet)`,
+            value: id,
+            ...(label === undefined ? {} : { description: label }),
+          }
+        }),
+        {
+          name: `Keep the rest as they are  (${remaining.join(', ')})`,
+          value: DONE,
+          description: 'Stop here; the remaining providers keep their current order',
+        },
+      ],
+    })
+
+    if (choice === DONE) break
+
+    ordered.push(choice)
+    remaining.splice(remaining.indexOf(choice), 1)
+  }
+
+  return [...ordered, ...remaining]
+}
+
+function nth(position: number): string {
+  return { 2: 'second', 3: 'third', 4: 'fourth', 5: 'fifth' }[position] ?? `number ${position}`
+}
+
 export async function pickQuality(current: QualityPreset): Promise<QualityPreset> {
   const { select } = await import('@inquirer/prompts')
 

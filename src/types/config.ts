@@ -30,6 +30,20 @@ export interface Resolved<T> {
 
 /** The shape written to the config file. All fields optional by design. */
 export interface ConfigFile {
+  /**
+   * Providers in the order they should be preferred, most preferred first.
+   *
+   * A preference, not a whitelist: a provider left out is still used if
+   * nothing named here can serve the request, and `--provider` overrides it
+   * outright. Ordering something unusable would otherwise make the tool
+   * refuse work it could do.
+   */
+  providerPriority?: string[]
+  /**
+   * Superseded by `providerPriority`, which reads a lone `defaultProvider` as
+   * a one-entry list. Kept so config files written before the list existed
+   * keep working.
+   */
   defaultProvider?: string
   /** Keyed by provider id. */
   apiKeys?: Record<string, string>
@@ -45,7 +59,14 @@ export interface ConfigFile {
 
 /** What the pipeline actually runs with, once all three layers have been read. */
 export interface ResolvedConfig {
-  readonly defaultProvider: Resolved<string>
+  /**
+   * Provider ids in preference order, most preferred first.
+   *
+   * Always complete: every registered provider appears, with the configured
+   * ones first in the order given and the rest after them. Unknown names are
+   * dropped — a typo should cost its own entry, not the whole setting.
+   */
+  readonly providerPriority: Resolved<readonly string[]>
   readonly outputDir: Resolved<string>
   readonly quality: Resolved<QualityPreset>
   readonly mark: Resolved<boolean>

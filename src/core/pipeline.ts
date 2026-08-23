@@ -13,8 +13,13 @@
  * loading a client.
  */
 
-import { loadGenerationClient, requireKindSupport, requireProvider } from '../providers/registry.js'
-import { requireApiKey } from '../config/resolve.js'
+import {
+  BUILT_IN_DEFAULT_PROVIDER,
+  loadGenerationClient,
+  requireKindSupport,
+  requireProvider,
+} from '../providers/registry.js'
+import { preferredProvider, requireApiKey } from '../config/resolve.js'
 import { defaultStem, saveMedia } from './output.js'
 import type { GenerationRequest, GenerationResult, QualityPreset } from '../types/media.js'
 import type { Logger, ProviderManifest } from '../types/provider.js'
@@ -64,7 +69,14 @@ export async function generate(
 ): Promise<GenerationResult> {
   const { config, log } = options
 
-  const provider = requireProvider(request.provider ?? config.defaultProvider.value)
+  // Naming a provider overrides everything. Otherwise the configured order
+  // decides, skipping any provider that has no key — a missing key for a
+  // preferred provider should cost that preference, not the request.
+  const provider =
+    request.provider === undefined
+      ? (preferredProvider(config, request.kind) ?? requireProvider(BUILT_IN_DEFAULT_PROVIDER))
+      : requireProvider(request.provider)
+
   requireKindSupport(provider, request.kind)
 
   const quality = request.quality ?? config.quality.value

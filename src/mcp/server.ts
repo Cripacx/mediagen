@@ -19,7 +19,7 @@ import { EXIT_CODE, isMediagenError, toMediagenError, type ExitCode } from '../c
 import { createLogger } from '../core/logger.js'
 import { version } from '../core/version.js'
 import { generate, resolveModel } from '../core/pipeline.js'
-import { loadConfig } from '../config/resolve.js'
+import { loadConfig, providerOrder } from '../config/resolve.js'
 import { labelledPathFor, markFile } from '../marking/mark.js'
 import { LABEL_POSITIONS } from '../marking/position.js'
 import { LAYER_LABEL } from '../config/layers.js'
@@ -241,13 +241,13 @@ export function buildServer(): McpServer {
             type: 'text' as const,
             text:
               usable.length > 0
-                ? `Configured: ${usable.map((entry) => entry.provider).join(', ')}. Default: ${config.defaultProvider.value}.`
+                ? `Configured: ${usable.map((entry) => entry.provider).join(', ')}. Priority: ${providerOrder(config).join(' > ')}.`
                 : // Never ask a user to paste an API key into a chat.
                   'No provider is configured. Ask the user to run `mediagen init` in their terminal — do not ask them for an API key here.',
           },
         ],
         structuredContent: {
-          defaultProvider: config.defaultProvider.value,
+          providerPriority: providerOrder(config),
           providers,
         },
       }

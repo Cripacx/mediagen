@@ -13,7 +13,7 @@ import { EXIT_CODE, type ExitCode } from '../../core/errors.js'
 import { command } from '../../core/invocation.js'
 import { configFilePath } from '../../config/file.js'
 import { LAYER_LABEL, maskSecret } from '../../config/layers.js'
-import { loadConfig } from '../../config/resolve.js'
+import { loadConfig, providerOrder } from '../../config/resolve.js'
 import { verifyProvider, type VerificationStatus } from '../../config/verify.js'
 import { PROVIDERS } from '../../providers/registry.js'
 import { reportError, writeJson, writeLine, type Outcome } from '../output.js'
@@ -110,15 +110,15 @@ async function report(offline: boolean, json: boolean): Promise<ExitCode> {
     writeJson({
       success: usable.length > 0,
       configFile: configFilePath(),
-      defaultProvider: config.defaultProvider.value,
-      defaultProviderLayer: LAYER_LABEL[config.defaultProvider.layer],
+      providerPriority: providerOrder(config),
+      providerPriorityLayer: LAYER_LABEL[config.providerPriority.layer],
       providers: reports,
     })
     return usable.length > 0 ? EXIT_CODE.SUCCESS : EXIT_CODE.CONFIG
   }
 
   writeLine(
-    `Default provider: ${config.defaultProvider.value} [${LAYER_LABEL[config.defaultProvider.layer]}]`,
+    `Provider priority: ${providerOrder(config).join(' > ')} [${LAYER_LABEL[config.providerPriority.layer]}]`,
   )
   writeLine(`Config file: ${configFilePath()}`)
   writeLine()

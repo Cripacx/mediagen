@@ -18,7 +18,14 @@ import { LAYER_LABEL, loadConfigLayers, maskSecret } from '../../config/layers.j
 import { loadConfig } from '../../config/resolve.js'
 import { verifyKey } from '../../config/verify.js'
 import { PROVIDERS, requireProvider } from '../../providers/registry.js'
-import { PROVIDER_DEFAULT, pickMarking, pickModel, pickProvider, pickQuality } from '../prompts.js'
+import {
+  PROVIDER_DEFAULT,
+  pickMarking,
+  pickModel,
+  pickPriority,
+  pickProvider,
+  pickQuality,
+} from '../prompts.js'
 import { readSecret } from '../secretInput.js'
 import { reportError, writeDiagnostic, writeLine, type Outcome } from '../output.js'
 import type { ConfigFile } from '../../types/config.js'
@@ -73,7 +80,7 @@ async function editor(): Promise<ExitCode> {
       message: 'What would you like to change?',
       choices: [
         {
-          name: `Default provider  —  ${config.defaultProvider.value}  [${LAYER_LABEL[config.defaultProvider.layer]}]`,
+          name: `Provider priority  —  ${config.providerPriority.value.join(' > ')}  [${LAYER_LABEL[config.providerPriority.layer]}]`,
           value: 'provider',
         },
         { name: `Model for a provider${modelSummary(file)}`, value: 'model' },
@@ -101,13 +108,17 @@ async function editor(): Promise<ExitCode> {
 
     switch (action) {
       case 'provider': {
-        const chosen = await pickProvider(
+        const ordered = await pickPriority(
           PROVIDERS,
-          'Which provider by default?',
-          file.defaultProvider,
+          config.providerPriority.value,
+          (providerId: string) => config.apiKey(providerId) !== undefined,
         )
-        writeConfigFile({ ...readConfigFile(), defaultProvider: chosen })
-        warnIfShadowed('MEDIAGEN_PROVIDER', 'the default provider')
+
+        // `defaultProvider` is what this replaced; leaving it would let a
+        // stale value reappear if the order were later removed.
+        const { defaultProvider: _replaced, ...current } = readConfigFile()
+        writeConfigFile({ ...current, providerPriority: ordered })
+        warnIfShadowed('MEDIAGEN_PROVIDER_PRIORITY', 'the provider priority')
         break
       }
 
@@ -115,7 +126,7 @@ async function editor(): Promise<ExitCode> {
         const providerId = await pickProvider(
           PROVIDERS,
           'Set the model for which provider?',
-          file.defaultProvider,
+          config.providerPriority.value[0],
         )
         const provider = requireProvider(providerId)
         const chosen = await pickModel(provider, 'image', file.models?.[providerId])

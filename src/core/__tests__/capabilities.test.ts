@@ -72,18 +72,41 @@ describe('capability validation', () => {
   })
 })
 
+/** A config that answers only what the pipeline asks of it. */
+function configWith(apiKey: ResolvedConfig['apiKey']): ResolvedConfig {
+  return {
+    providerPriority: { value: ['gemini'], layer: 'file', shadowed: [] },
+    outputDir: { value: './output', layer: 'default', shadowed: [] },
+    quality: { value: 'fast', layer: 'default', shadowed: [] },
+    mark: { value: false, layer: 'default', shadowed: [] },
+    visibleLabel: { value: false, layer: 'default', shadowed: [] },
+    apiKey,
+    model: () => undefined,
+  }
+}
+
 describe('validation happens before any network call', () => {
-  it('fails an unsupported shape without loading a client or reading a key', async () => {
-    const apiKey = vi.fn(() => undefined)
-    const config: ResolvedConfig = {
-      defaultProvider: { value: 'gemini', layer: 'default', shadowed: [] },
-      outputDir: { value: './output', layer: 'default', shadowed: [] },
-      quality: { value: 'fast', layer: 'default', shadowed: [] },
-      mark: { value: false, layer: 'default', shadowed: [] },
-      visibleLabel: { value: false, layer: 'default', shadowed: [] },
-      apiKey,
-      model: () => undefined,
-    }
+  it('fails an unsupported shape rather than demanding a key first', async () => {
+    // Returning a usable key rather than undefined is the point: if the shape
+    // check ran too late, this request would reach the provider instead of
+    // being refused, and the test would pass for the wrong reason.
+    const apiKey = vi.fn(() => ({
+      value: 'a-long-enough-key-value',
+      layer: 'file' as const,
+      shadowed: [],
+    }))
+    await expect(
+      generate(request({ aspectRatio: '13:7', model: 'gemini-3-pro-image' }), {
+        config: configWith(apiKey),
+        log: silentLogger,
+      }),
+    ).rejects.toMatchObject({ code: ERROR_CODE.VALIDATION_ERROR })
+  })
+
+  it('refuses the shape before requiring a key, when neither is there', async () => {
+    // Both are wrong here. The shape error is the one worth reporting: it is
+    // about the request, and it would still be wrong with every key in place.
+    const config = configWith(() => undefined)
 
     await expect(
       generate(request({ aspectRatio: '13:7', model: 'gemini-3-pro-image' }), {
@@ -91,9 +114,22 @@ describe('validation happens before any network call', () => {
         log: silentLogger,
       }),
     ).rejects.toMatchObject({ code: ERROR_CODE.VALIDATION_ERROR })
+  })
 
-    // A key lookup here would mean the shape check ran too late to be the
-    // guard it is meant to be.
-    expect(apiKey).not.toHaveBeenCalled()
+  it('picks a provider by whether it has a key, which means reading them', async () => {
+    // Choosing a default cannot avoid looking. What it must not do is demand
+    // one: a lookup returning nothing falls through to the next provider,
+    // where `requireApiKey` is still what turns a missing key into an error,
+    // and only once that provider is actually used.
+    const apiKey = vi.fn(() => undefined)
+
+    await expect(
+      generate(request({ aspectRatio: '13:7', model: 'gemini-3-pro-image' }), {
+        config: configWith(apiKey),
+        log: silentLogger,
+      }),
+    ).rejects.toMatchObject({ code: ERROR_CODE.VALIDATION_ERROR })
+
+    expect(apiKey).toHaveBeenCalled()
   })
 })

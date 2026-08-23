@@ -12,7 +12,13 @@ import * as path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fromDefault, maskSecret, resolve, type ConfigLayers } from '../layers.js'
 import { configDirPath, configFilePath, readConfigFile, writeConfigFile } from '../file.js'
-import { loadConfig, modelEnvVar, requireApiKey, assertSomeProviderUsable } from '../resolve.js'
+import {
+  providerOrder,
+  loadConfig,
+  modelEnvVar,
+  requireApiKey,
+  assertSomeProviderUsable,
+} from '../resolve.js'
 import { ERROR_CODE } from '../../core/errors.js'
 import { PROVIDERS, requireProvider } from '../../providers/registry.js'
 import type { ConfigFile } from '../../types/config.js'
@@ -149,7 +155,7 @@ describe('credential validation timing', () => {
 
     expect(() => {
       assertSomeProviderUsable(config)
-    }).toThrow(new RegExp(requireProvider(config.defaultProvider.value).credential.envVar))
+    }).toThrow(new RegExp(requireProvider(providerOrder(config)[0]!).credential.envVar))
   })
 
   it('runs when at least one provider is usable', () => {

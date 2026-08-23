@@ -14,7 +14,7 @@ import { readConfigFile, writeConfigFile } from '../../config/file.js'
 import { maskSecret } from '../../config/layers.js'
 import { verifyKey } from '../../config/verify.js'
 import { PROVIDERS } from '../../providers/registry.js'
-import { PROVIDER_DEFAULT, pickMarking, pickModel, pickProvider } from '../prompts.js'
+import { PROVIDER_DEFAULT, pickMarking, pickModel, pickPriority } from '../prompts.js'
 import { readSecret } from '../secretInput.js'
 import { reportError, writeDiagnostic, writeLine, type Outcome } from '../output.js'
 import type { ConfigFile } from '../../types/config.js'
@@ -142,16 +142,21 @@ async function wizard(): Promise<ExitCode> {
     return EXIT_CODE.SUCCESS
   }
 
-  const defaultProvider =
+  // Only worth asking when there is an order to state. Providers that were
+  // not configured here still follow the chosen ones, so a key added later
+  // needs no second visit.
+  const providerPriority =
     configured.length === 1
-      ? configured[0]!
-      : await pickProvider(
+      ? [configured[0]!]
+      : await pickPriority(
           PROVIDERS.filter((provider) => configured.includes(provider.id)),
-          'Which provider should be the default?',
-          file.defaultProvider,
+          file.providerPriority ??
+            (file.defaultProvider === undefined ? [] : [file.defaultProvider]),
+          (providerId: string) => configured.includes(providerId),
         )
 
-  file = { ...file, defaultProvider }
+  const { defaultProvider: _replaced, ...rest } = file
+  file = { ...rest, providerPriority }
 
   // Asked last, because it is the one question that is not about getting
   // set up but about what every future run should do.
@@ -164,7 +169,11 @@ async function wizard(): Promise<ExitCode> {
   const path = writeConfigFile(file)
 
   writeDiagnostic('')
-  writeDiagnostic(`Default provider: ${defaultProvider}`)
+  writeDiagnostic(
+    providerPriority.length === 1
+      ? `Provider: ${providerPriority[0]!}`
+      : `Provider priority: ${providerPriority.join(' > ')}`,
+  )
   if (marking.mark) {
     writeDiagnostic(
       marking.visibleLabel

@@ -13,20 +13,9 @@ Tests never read your config file or inherit your API keys — `test/setup.ts`
 enforces that, and a test fails if that enforcement is ever removed. No test
 issues a live, billable request.
 
-## Layout
+## Two invariants
 
-| Path               | What lives there                                          |
-| ------------------ | --------------------------------------------------------- |
-| `src/types/`       | leaf types everything else shares, importing nothing back |
-| `src/core/`        | the pipeline, errors, capability checks, file handling    |
-| `src/config/`      | the three configuration layers and key verification       |
-| `src/providers/`   | one directory per provider, plus the registry             |
-| `src/cli/`         | the command tree; `output.ts` owns stdout                 |
-| `src/mcp/`         | the MCP server                                            |
-| `src/marking/`     | AI content marking                                        |
-| `skills/mediagen/` | the agent skill                                           |
-
-Two invariants worth knowing before editing:
+The README has the directory tree. Two things about it are load-bearing:
 
 - **`src/cli/output.ts` is the only module that writes to stdout.** The lint
   config enforces it. That is what makes the output contract a property of one

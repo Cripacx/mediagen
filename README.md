@@ -1,94 +1,164 @@
-# mediagen
+# mediagen — CLI + MCP + Agent Skill
 
 [![npm](https://img.shields.io/npm/v/mediagen)](https://www.npmjs.com/package/mediagen)
 [![CI](https://github.com/Cripacx/mediagen/actions/workflows/ci.yml/badge.svg)](https://github.com/Cripacx/mediagen/actions/workflows/ci.yml)
 [![node](https://img.shields.io/node/v/mediagen)](https://nodejs.org)
-[![licence](https://img.shields.io/npm/l/mediagen)](LICENSE)
 
-**One interface for generating images and video across several commercial
-providers** — so you can pick the right model for a task without learning five
-different APIs.
-
-Reachable three ways, all running the same pipeline: a **command line**, an
-**MCP server**, and an **agent skill**.
+Image and video generation across Google Gemini, OpenAI and Kie AI — one
+request shape in front of all of them, reachable from a command line, an MCP
+server, or an agent skill.
 
 ```bash
-npx -y mediagen image "a red steel bicycle against a wet brick wall, overcast light, 50mm" --json
+npx -y mediagen image "a red steel bicycle against a wet brick wall, overcast light, 50mm"
 ```
-
-```json
-{
-  "success": true,
-  "filePath": "./output/image-20260823T094107Z.png",
-  "kind": "image",
-  "provider": "gemini",
-  "model": "gemini-3.1-flash-image",
-  "mimeType": "image/png"
-}
-```
-
-## Why
-
-Every image API has its own vocabulary. One takes aspect ratios, another takes
-pixel dimensions. One calls a quality level `high`, another calls it `hd`. One
-wants your source image inline, another wants a URL you have to upload first.
-
-mediagen puts one request shape in front of all of them — and refuses to
-pretend they are more alike than they are. If a model cannot produce the shape
-you asked for, you are told before the request is sent, with the shapes it can
-produce. Nothing is silently substituted.
 
 ## Features
 
-- **Images and video**, text-to-media and media-to-media, across Gemini, OpenAI
-  and Kie AI.
-- **Capability checks that happen first.** An unsupported aspect ratio, size or
-  duration is refused before any network call, naming what the model supports.
-- **Model choice that explains itself.** `mediagen models` shows what each
+- Generate images and video from text prompts, or edit existing media, across
+  **Google Gemini**, **OpenAI** and **Kie AI** (~30 aggregated models)
+- **Three execution modes**: CLI, MCP server, or agent skill — all running the
+  same pipeline, so none of them can do something the others cannot
+- **Capability checks before the request is sent.** An aspect ratio, size or
+  duration the model cannot produce is refused by name, listing what it does
+  support. Nothing is silently substituted
+- **Model listings that explain themselves**: `mediagen models` shows what each
   provider would use right now and whether that came from your request, your
-  configuration, or the provider's default.
-- **Configuration you can debug.** Settings resolve from the environment, then
-  `.env`, then a config file — and every value reports which layer answered.
-- **Keys handled properly.** Never a command argument. Read from a hidden
-  prompt or stdin, verified against the live API before being stored, masked
-  whenever displayed.
-- **AI content marking.** IPTC/XMP `DigitalSourceType` for machines, a
-  composited label for people — two independent switches, matching the two
-  duties the EU AI Act sets.
-- **Built for scripts.** `--json` puts exactly one object on stdout and nothing
-  else. Stable exit codes. Every error carries a code and an actionable hint.
+  configuration, or the provider's default
+- **Layered configuration with provenance** — environment, then `.env`, then a
+  config file, with every value reporting which layer answered
+- **API keys never taken as arguments**: hidden prompt or stdin only, verified
+  against the live API before being stored, masked whenever displayed
+- **EU AI Act content marking**: IPTC/XMP `DigitalSourceType` for machines and
+  a composited label for people, as two independent switches
+- **Built for scripting**: `--json` emits exactly one object on stdout, with
+  stable exit codes and an actionable hint on every error
+- Kie's model catalogue is **generated from Kie's own documentation**, not
+  maintained by hand, with a scheduled drift check
 
-## Providers
+## Prerequisites
 
-| Provider          | Images                         | Video | Editing | Key verification                 |
-| ----------------- | ------------------------------ | ----- | ------- | -------------------------------- |
-| **Google Gemini** | Nano Banana family, up to 4K   | yes   | yes     | live probe                       |
-| **OpenAI**        | gpt-image family, DALL·E       | —     | yes     | live probe                       |
-| **Kie AI**        | ~30 models: Flux, Imagen, Grok | —     | most    | no cheap probe; reported as such |
-
-Gemini has the widest range of shapes — 14 aspect ratios including 21:9 and
-8:1. Kie aggregates other vendors' models, with a catalogue generated from
-Kie's own documentation rather than maintained by hand.
-
-> [!NOTE]
-> OpenAI takes pixel dimensions rather than aspect ratios, and genuinely cannot
-> produce 16:9 — its widest image is 1536×1024, which is 3:2. Asking for 16:9 is
-> refused by name rather than quietly served as something else. For anything
-> wider than 3:2, use Gemini.
+- At least one API key:
+  - Google Gemini ([get one here](https://aistudio.google.com/apikey)) — images
+    **and** video
+  - OpenAI ([get one here](https://platform.openai.com/api-keys)) — images
+  - Kie AI ([get one here](https://kie.ai/api-key)) — ~30 third-party models
+- Node.js 20.11 or later
 
 ## Installation
+
+Three ways to use mediagen. They are independent — pick whichever fits, or use
+several.
+
+### As an agent skill
+
+```bash
+npx -y skills add Cripacx/mediagen --skill mediagen
+```
+
+That is the entire installation. **The CLI does not need installing
+separately** — the skill invokes `npx -y mediagen`, which fetches it on first
+use and runs it from the npx cache afterwards.
+
+The skill teaches the agent how to write a prompt worth sending, which provider
+suits which task, how to read the JSON contract, and to ask _you_ to set up
+keys rather than requesting them in chat.
+
+### As a CLI
+
+No installation needed:
+
+```bash
+npx -y mediagen image "a logo for a coffee roastery, flat vector, two colours"
+```
+
+Or install it globally, if you use it often enough to want the shorter command:
 
 ```bash
 npm install -g mediagen
 ```
 
-Or skip installing — `npx -y mediagen <command>` behaves identically and uses
-an existing install if there is one. Requires Node 20.11 or later.
+> [!NOTE]
+> Always pass a subcommand. Bare `mediagen` prints help; `mediagen mcp` starts
+> the MCP server.
 
-## Getting started
+### As an MCP server
+
+The server is the same package, started with `mediagen mcp`. It exposes three
+tools: `generate_media`, `list_models` and `check_configuration`.
+
+**Option A — Claude Code**
 
 ```bash
-mediagen init
+claude mcp add mediagen --env GEMINI_API_KEY=your-api-key-here -- npx -y mediagen mcp
+```
+
+The `--` separates Claude's own flags from the command that starts the server.
+Add `--scope project` or `--scope user` to change where the entry is written.
+
+**Option B — Claude Desktop**
+
+Settings → Developer → Edit Config, or edit directly:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "mediagen": {
+      "command": "npx",
+      "args": ["-y", "mediagen", "mcp"],
+      "env": {
+        "GEMINI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop afterwards.
+
+**Option C — VS Code**
+
+```bash
+code --add-mcp "{\"name\":\"mediagen\",\"command\":\"npx\",\"args\":[\"-y\",\"mediagen\",\"mcp\"]}"
+```
+
+Or create `.vscode/mcp.json` in your workspace — note that VS Code uses
+`servers`, not `mcpServers`:
+
+```json
+{
+  "servers": {
+    "mediagen": {
+      "command": "npx",
+      "args": ["-y", "mediagen", "mcp"]
+    }
+  }
+}
+```
+
+**Option D — any other MCP client**
+
+Cursor, Windsurf, Zed and most others take the same shape as Claude Desktop, in
+their own config file:
+
+| Field     | Value                       |
+| --------- | --------------------------- |
+| `command` | `npx`                       |
+| `args`    | `["-y", "mediagen", "mcp"]` |
+| transport | stdio                       |
+
+> [!TIP]
+> `env` can be omitted from any of these once you have run `mediagen init` —
+> the server reads the same configuration the CLI does.
+
+## Configuration
+
+### Setting up keys
+
+```bash
+npx -y mediagen init
 ```
 
 An interactive wizard: pick providers, enter each key without it being echoed,
@@ -98,17 +168,17 @@ with owner-only permissions.
 For CI and scripts, where there is no terminal:
 
 ```bash
-echo "$GEMINI_API_KEY" | mediagen config set gemini --stdin
+echo "$GEMINI_API_KEY" | npx -y mediagen config set gemini --stdin
 ```
 
-Then confirm it works:
+Then confirm everything works:
 
 ```bash
-mediagen doctor
+npx -y mediagen doctor
 ```
 
-`doctor` reports, per provider, whether a key is configured, which layer it
-came from, and whether the provider accepts it — keeping _not configured_,
+`doctor` reports, per provider, whether a key is configured, which layer it came
+from, and whether the provider accepts it — keeping _not configured_,
 _rejected_, _unreachable_ and _no cheap way to check_ distinct, because they
 call for four different fixes.
 
@@ -117,10 +187,33 @@ call for four different fixes.
 > land in shell history and in the process list, where they outlive the command
 > that used them.
 
+### Environment variables
+
+Settings resolve from the environment first, then `.env` in the working
+directory, then the config file.
+
+| Variable                                          | Purpose                       |
+| ------------------------------------------------- | ----------------------------- |
+| `GEMINI_API_KEY`, `OPENAI_API_KEY`, `KIE_API_KEY` | credentials; at least one     |
+| `MEDIAGEN_PROVIDER`                               | default provider              |
+| `GEMINI_MODEL`, `OPENAI_MODEL`, `KIE_MODEL`       | default model per provider    |
+| `MEDIAGEN_OUTPUT_DIR`                             | where media is saved          |
+| `MEDIAGEN_QUALITY`                                | `fast`, `balanced`, `quality` |
+
+```bash
+mediagen config list        # every value, and which layer supplied it
+mediagen config path        # where the file lives
+mediagen config unset kie   # remove one value from the file
+```
+
+> [!TIP]
+> A stale environment variable shadowing the key you just configured is the most
+> expensive failure this kind of tool has. `config list` marks every shadowed
+> value, so you can see it rather than guess.
+
 ## Usage
 
 ```bash
-mediagen image "a logo for a coffee roastery, flat vector, two colours"
 mediagen image "a wide banner" --aspect-ratio 21:9 --size 2K --mark
 mediagen image "make the sky stormy" --input ./photo.jpg
 mediagen video "a marble rolling down a wooden track" --duration 6
@@ -146,26 +239,23 @@ mediagen mark ./photo.png --visible-label
 | `--json`                 | exactly one JSON object on stdout    |
 | `--verbose` `--quiet`    | diagnostics on stderr                |
 
-> [!TIP]
-> The prompt is sent exactly as written — mediagen does not rewrite it. Being
-> specific about subject, composition, light, camera or medium, materials and
-> atmosphere does far more for the result than any flag here.
-
 ### Scripting
 
 With `--json`, stdout carries **exactly one JSON object and nothing else**.
-Without it, the saved path is the **last line**, and a failure writes nothing to
+Without it the saved path is the **last line**, and a failure writes nothing to
 stdout at all — so reading the last line can never hand you an error message
 where you expected a path.
 
-| Exit code | Meaning                          |
-| --------- | -------------------------------- |
-| `0`       | success                          |
-| `2`       | invalid input or usage           |
-| `3`       | configuration or credentials     |
-| `4`       | generation, network, or file I/O |
-
-Failures carry a machine-readable code and a next action:
+```json
+{
+  "success": true,
+  "filePath": "./output/image-20260823T094107Z.png",
+  "kind": "image",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-image",
+  "mimeType": "image/png"
+}
+```
 
 ```json
 {
@@ -176,67 +266,34 @@ Failures carry a machine-readable code and a next action:
 }
 ```
 
-Codes are `VALIDATION_ERROR`, `CONFIG_ERROR`, `API_ERROR`, `NETWORK_ERROR`,
-`FILE_ERROR`, `CONTENT_BLOCKED` and `TIMEOUT`.
+| Exit code | Meaning                          |
+| --------- | -------------------------------- |
+| `0`       | success                          |
+| `2`       | invalid input or usage           |
+| `3`       | configuration or credentials     |
+| `4`       | generation, network, or file I/O |
 
-## Configuration
+Error codes are `VALIDATION_ERROR`, `CONFIG_ERROR`, `API_ERROR`,
+`NETWORK_ERROR`, `FILE_ERROR`, `CONTENT_BLOCKED` and `TIMEOUT`.
 
-Three layers, highest priority first:
+## Providers
 
-1. the process environment
-2. `.env` in the working directory
-3. the config file written by `mediagen init`
+| Provider          | Images                         | Video | Editing | Key verification                 |
+| ----------------- | ------------------------------ | ----- | ------- | -------------------------------- |
+| **Google Gemini** | Nano Banana family, up to 4K   | yes   | yes     | live probe                       |
+| **OpenAI**        | gpt-image family, DALL·E       | —     | yes     | live probe                       |
+| **Kie AI**        | ~30 models: Flux, Imagen, Grok | —     | most    | no cheap probe; reported as such |
 
-| Setting          | Variable                                          |
-| ---------------- | ------------------------------------------------- |
-| Default provider | `MEDIAGEN_PROVIDER`                               |
-| API key          | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `KIE_API_KEY` |
-| Model            | `GEMINI_MODEL`, `OPENAI_MODEL`, `KIE_MODEL`       |
-| Output directory | `MEDIAGEN_OUTPUT_DIR`                             |
-| Quality preset   | `MEDIAGEN_QUALITY`                                |
+Run `mediagen models` for the full list and what each would be used for.
 
-```bash
-mediagen config list        # every value, and which layer supplied it
-mediagen config path        # where the file lives
-mediagen config unset kie   # remove one value from the file
-```
+> [!NOTE]
+> OpenAI takes pixel dimensions rather than aspect ratios and genuinely cannot
+> produce 16:9 — its widest image is 1536×1024, which is 3:2. Asking for 16:9 is
+> refused by name rather than quietly served as something else. For anything
+> wider than 3:2, use Gemini.
 
-> [!TIP]
-> A stale environment variable shadowing the key you just configured is the most
-> expensive failure this kind of tool has. `mediagen config list` marks every
-> shadowed value, so you can see it instead of guessing.
-
-## MCP server
-
-```json
-{
-  "mcpServers": {
-    "mediagen": {
-      "command": "npx",
-      "args": ["-y", "mediagen", "mcp"],
-      "env": { "GEMINI_API_KEY": "..." }
-    }
-  }
-}
-```
-
-Three tools: `generate_media`, `list_models` and `check_configuration`. `env`
-can be omitted once `mediagen init` has run — the server reads the same
-configuration the CLI does.
-
-## Agent skill
-
-```bash
-npx skills add Cripacx/mediagen --skill mediagen
-```
-
-Teaches an agent to drive the CLI: how to write a prompt worth sending, which
-provider suits which task, how to read the JSON contract, and — importantly —
-to tell you to run `mediagen init` rather than ever asking you to paste an API
-key into a chat.
-
-The skill installs no CLI of its own, so it invokes `npx -y mediagen`, which
-needs none.
+A model absent from the listings is still sent to the provider, so a newly
+released model works before mediagen knows about it.
 
 ## Content marking
 
@@ -249,15 +306,76 @@ independent switches:
 | `--visible-label` | disclose it to people    | composites a visible label into the image              |
 
 Both default to off. `mediagen mark <file…>` applies them to media that already
-exists.
+exists, in place. Existing provider metadata is never overwritten, and a second
+pass does not mark twice.
 
 > [!NOTE]
 > No C2PA manifest is written. A manifest only carries provenance if it is
-> signed, signing needs a certificate you do not have, and a test-signed
-> manifest would look like provenance while carrying none. Marking video is not
-> supported yet and is refused by name rather than silently skipped.
+> signed, signing needs a certificate you do not have, and a test-signed manifest
+> would look like provenance while carrying none. Marking video is not supported
+> yet and is refused by name rather than silently skipped.
 
-## Development
+## Prompt tips
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, how to add a
+mediagen sends your prompt **exactly as written** — it does not expand or
+rewrite it. A short prompt underdetermines the image, and the model resolves
+everything you left unsaid arbitrarily. Decide these before generating:
+
+- **Subject** — what is present, and what it is doing
+- **Composition** — framing, where the subject sits, depth, what is cropped
+- **Light** — source, direction, hardness, colour temperature, time of day.
+  This decides more than anything else whether an image reads as photographic
+- **Camera or medium** — lens and distance for a photograph, tool and surface
+  for an illustration. This resolves scale, which models otherwise guess at
+- **Material** — what things are made of and how they catch light
+- **Atmosphere** — mood and palette, stated plainly rather than piled up
+
+Say what you want rather than what you do not; "an empty street at dawn" works
+where "no people" often does not. Avoid stacking style words — one clear
+statement beats five adjectives. Text inside images is unreliable across every
+provider here.
+
+The agent skill carries this guidance, so an agent writes the prompt itself and
+you do not have to.
+
+## How it works
+
+One pipeline, three frontends. The CLI and MCP server translate input and
+format output and contain no behaviour of their own, so a capability cannot
+exist in one and be missing from the other.
+
+```
+                CLI  ·  MCP server  ·  agent skill
+                            ↓
+   request → model resolution → capability check → provider client
+                            ↓
+              save to disk → optional AI marking → result
+```
+
+Each provider is one self-contained directory declaring what it supports.
+Adding one touches a single line outside its own folder. Provider manifests
+carry no vendor SDK imports, so `doctor` and `config` never pay to load one.
+
+## Project structure
+
+```
+src/
+├── types/          leaf types everything shares
+├── core/           pipeline, errors, capability checks, file handling
+├── config/         the three configuration layers, key verification
+├── providers/      one directory per provider, plus the registry
+│   ├── gemini/
+│   ├── openai/
+│   ├── kie/
+│   └── shared/     polling for asynchronous providers
+├── cli/            the command tree; output.ts owns stdout
+├── mcp/            the MCP server
+└── marking/        AI content marking
+skills/mediagen/    the agent skill
+scripts/            catalogue generation, version syncing
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, how to add a
 provider, and how releases are cut.

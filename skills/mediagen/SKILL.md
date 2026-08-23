@@ -107,32 +107,36 @@ released model works before this skill knows about it.
 --output-dir <dir>
 --quality <preset>      fast, balanced, quality
 --duration <seconds>    video only
---mark                  machine-readable AI-generated marker
---visible-label         visible AI disclosure composited into the image
---label-position <where>  bottom-right (default), bottom-left, top-right,
-                          top-left, or auto
 ```
+
+Generating never marks. Marking is a separate command, run afterwards — see
+below.
 
 ## Marking
 
-**Recommend `--mark` whenever the output is photorealistic, will be published,
-or is for professional use.** It writes the IPTC/XMP `DigitalSourceType` that
-platforms read, costs nothing, and changes no pixels. In the EU it is a legal
-duty for the provider of synthetic content.
+Marking is always a second pass over a file that already exists:
+`npx -y mediagen mark <file...>`. Generating does not mark, and there is no
+flag to make it.
+
+That is not a style preference. A visible label has to go where the subject
+is not, and only the finished image can say where that is. And the
+machine-readable marker is not free either: adding metadata to a JPEG or WebP
+means decoding and re-encoding it, so marking costs a second lossy pass. Worth
+paying deliberately; not worth paying as a side effect of asking for an image.
+
+**Recommend marking whenever the output is photorealistic, will be published,
+or is for professional use.** `mediagen mark` writes the IPTC/XMP
+`DigitalSourceType` that platforms read. In the EU it is a legal duty for the
+provider of synthetic content.
 
 `--visible-label` is the separate duty — disclosure to people who see the
-image. It composites the European Commission's official AI-content icon, and
-picks the right variant on its own: "AI GENERATED" for a prompt-only image,
-"AI MODIFIED" when `--input` was used. Suggest it when the image will be shown
-to an audience who might otherwise take it for a photograph.
+image. It composites the European Commission's official AI-content icon and
+picks the right variant on its own: "AI GENERATED" by default, "AI MODIFIED"
+with `--modified`, for media a model altered rather than made.
 
-### Mark in a second pass
+### The workflow
 
-**Prefer this over `--visible-label` during generation.** A visible label
-destroys pixels, and where it should go depends on where the subject actually
-ended up — which only the finished image can tell you.
-
-1. **Generate without `--visible-label`.** The saved path comes back on stdout.
+1. **Generate.** The saved path comes back on stdout.
 2. **Open the image and look at it.** You wrote the prompt, but the model
    decided the composition.
 3. **Mark it, naming the corner** that covers nothing important:
@@ -141,55 +145,24 @@ ended up — which only the finished image can tell you.
 npx -y mediagen mark ./output/image-….png --visible-label --label-position top-left
 ```
 
-That writes `image-….labelled.png` beside the original and leaves the original
-exactly as generated. Both files stay on disk, so a badly placed label costs
-nothing but a rerun of step 3.
+That writes `image-….labelled.png` beside the original, and writes the
+machine-readable marker into the original itself. Both files stay on disk, so
+a badly placed label costs nothing but a rerun of step 3, and whichever file
+gets published carries the disclosure.
 
-The machine-readable marker is separate and safe to apply at generation time:
-`--mark` only adds metadata. A file that already declares a source type is left
-alone and says so, so a second pass never double-marks.
+If you cannot view images, leave `--label-position` off: it defaults to
+bottom-right. `auto` measures each corner and picks the calmest, but it only
+knows where the image is busy, not what in it matters — so if you do know the
+composition, naming a corner beats it.
 
-Use `--visible-label` during generation only when you cannot view images. It
-still writes the label to a copy rather than over the original, and reports
-both paths — `filePath` is the labelled one, `originalPath` the untouched
-generation.
-
-### Where the label goes
-
-**The default is `bottom-right`.** It is a fixed corner, not a computed one,
-so a disclosure lands where a viewer learns to look and a batch of images stays
-consistent.
-
-Two things _are_ computed per image, and you do not control either:
-
-- **Light or dark version** — chosen from the mean brightness of the corner the
-  label lands in. Below 128 it uses the light badge, above it the dark one.
-- **Size** — 20% of the image width, never below 96px, and clamped so it always
-  fits, with a margin of 2.5% of the shorter side.
-
-Use `--label-position <where>` when the default corner would cover something
-that matters: `bottom-right`, `bottom-left`, `top-right`, `top-left`, or
-`auto`.
-
-`auto` measures all four corners and picks the one with the least detail —
-lowest standard deviation across the colour channels, so flat sky wins over a
-face or a caption. Ties go to `bottom-right`. Reach for `auto` when you cannot
-see the image and the subject might be anywhere; name a corner when you know
-where the important part is.
-
-If you already know the composition — you wrote the prompt, after all — naming
-a corner is better than `auto`. `auto` only knows where the image is busy, not
-what in it matters.
-
-`npx -y mediagen mark <file...>` applies both to media that already exists.
-
-The user may have configured marking on by default. If they have, it happens
-without your asking; `--no-mark` and `--no-visible-label` turn it off for a
-single run when they explicitly do not want it.
+The user may have configured marking on by default. If they have, `mediagen
+mark` draws the visible label without your asking; `--no-mark` and
+`--no-visible-label` turn each off for a single run.
 
 **Video cannot be marked yet.** Writing XMP into a video container is a
 different operation from writing it into a still, and this build does not do
-it — `--mark` on a video is refused by name rather than silently ignored. If a
+it — a video passed to `mediagen mark` is refused by name rather than silently
+ignored. If a
 video needs a disclosure, say so to the user rather than assuming it is marked.
 
 ## Reading the result
@@ -255,8 +228,9 @@ npx -y mediagen image "A red steel bicycle leaning against a wet brick wall, see
   across the street at eye level. Overcast afternoon light, no direct sun.
   Shallow depth of field, 50mm. Rain beading on the frame." --json
 
-# Wide banner, marked for publication.
-npx -y mediagen image "..." --aspect-ratio 21:9 --size 2K --mark --json
+# Wide banner for publication: generate, look at it, then mark.
+npx -y mediagen image "..." --aspect-ratio 21:9 --size 2K --json
+npx -y mediagen mark ./output/image-….png --visible-label --label-position top-left --json
 
 # Video: slow, and Gemini only.
 npx -y mediagen video "A marble rolling fast down a wooden track, continuous smooth

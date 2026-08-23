@@ -15,8 +15,6 @@
 
 import { loadGenerationClient, requireKindSupport, requireProvider } from '../providers/registry.js'
 import { requireApiKey } from '../config/resolve.js'
-import { labelledPathFor, markFile } from '../marking/mark.js'
-import type { LabelPosition } from '../marking/position.js'
 import { defaultStem, saveMedia } from './output.js'
 import type { GenerationRequest, GenerationResult, QualityPreset } from '../types/media.js'
 import type { Logger, ProviderManifest } from '../types/provider.js'
@@ -97,53 +95,21 @@ export async function generate(
     log,
   })
 
-  // Marking happens after the file exists and before the path is reported, so
-  // a caller that reads the path always gets a marked file. The request wins
-  // where it says anything; otherwise the configured default applies, which is
-  // off unless someone turned it on.
-  const machineReadable = request.mark ?? config.mark.value
-  const visibleLabel = request.visibleLabel ?? config.visibleLabel.value
-
-  // The generated file is never overwritten with a labelled version. A visible
-  // label destroys pixels, and a label placed badly can be redone from an
-  // untouched original but from nothing else. When one is asked for it goes
-  // beside the original, and the original stays exactly as generated.
-  let reportedPath = saved.filePath
-  let originalPath: string | undefined
-
-  if (machineReadable || visibleLabel) {
-    const marking = await markFile(
-      saved.filePath,
-      {
-        machineReadable,
-        visibleLabel,
-        // The Commission separates media a model made outright from human
-        // media a model altered. The request already says which this is.
-        labelKind: request.inputMedia === undefined ? 'generated' : 'modified',
-        ...(request.labelPosition === undefined
-          ? {}
-          : { labelPosition: request.labelPosition as LabelPosition }),
-        ...(visibleLabel ? { outputPath: labelledPathFor(saved.filePath) } : {}),
-      },
-      { provider: provider.id, model },
-    )
-
-    if (marking.alreadyMarked && machineReadable) {
-      log.info(`${provider.label} already declared a digital source type; left as it was.`)
-    }
-
-    if (marking.sourcePath !== undefined) {
-      // The labelled copy is what was asked for, so it is the answer; the
-      // original is reported alongside rather than left to be guessed at.
-      reportedPath = marking.filePath
-      originalPath = marking.sourcePath
-      log.info(`Unlabelled original kept at ${marking.sourcePath}`)
-    }
-  }
+  // Generating does not mark. Marking is `mediagen mark`, run afterwards on
+  // the file this returns.
+  //
+  // Both markers want something a generation cannot give them. The visible one
+  // has to go where the subject is not, which only the finished image can
+  // say. The machine-readable one is not free either: adding metadata means
+  // decoding and re-encoding, so a lossy generation is marked at the cost of a
+  // second encode — worth paying deliberately, not as a side effect of asking
+  // for an image.
+  //
+  // Keeping them out of here also means one thing produces media and another
+  // changes it, so a generation is never quietly a rewrite as well.
 
   return {
-    filePath: reportedPath,
-    ...(originalPath === undefined ? {} : { originalPath }),
+    filePath: saved.filePath,
     kind: request.kind,
     provider: provider.id,
     model,

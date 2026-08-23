@@ -5,7 +5,7 @@
  * metadata survives, and a second pass does not double-mark.
  */
 
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import * as path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -102,6 +102,18 @@ async function label(
     outputPath: labelledPathFor(filePath),
   })
   return result.filePath
+}
+
+/** How far two encodings of the same image drift, averaged per channel value. */
+async function meanPixelDifference(a: Uint8Array, b: Uint8Array): Promise<number> {
+  const left = await sharp(a).raw().toBuffer()
+  const right = await sharp(b).raw().toBuffer()
+
+  let total = 0
+  for (let index = 0; index < left.length; index += 1) {
+    total += Math.abs(left[index]! - right[index]!)
+  }
+  return total / left.length
 }
 
 async function xmpOf(filePath: string): Promise<string | undefined> {
@@ -422,6 +434,52 @@ describe('asking for both markers at once', () => {
       expect(xmp, written).toContain(TRAINED_ALGORITHMIC_MEDIA)
       expect(xmp, written).toContain('gemini-3-pro-image')
     }
+  })
+})
+
+describe('marking a lossy format', () => {
+  /**
+   * sharp cannot add metadata without rewriting the file, so marking a JPEG
+   * costs a re-encode. Left to its defaults that is quality 80 with subsampled
+   * colour, which took a real 4K generation from 8.4 MB to 1.4 MB — a
+   * significant loss, paid silently, for adding a line of metadata.
+   */
+  it('does not fall back to the encoder default quality', async () => {
+    const filePath = path.join(directory, 'photo.jpg')
+    // Noise, not a flat colour: a solid image survives any quality setting
+    // and would hide the difference entirely.
+    const noise = Buffer.alloc(400 * 400 * 3)
+    for (let index = 0; index < noise.length; index += 1) {
+      noise[index] = (index * 2654435761) % 256
+    }
+    const source = await sharp(noise, { raw: { width: 400, height: 400, channels: 3 } })
+      .jpeg({ quality: 95, chromaSubsampling: '4:4:4' })
+      .toBuffer()
+    writeFileSync(filePath, source)
+
+    await markFile(filePath, { machineReadable: true, visibleLabel: false })
+
+    expect(hasDigitalSourceType(await xmpOf(filePath))).toBe(true)
+
+    // Measured on this image: about 5 at the quality marking uses, about 62 if
+    // the encoder is left to its defaults. The threshold sits between them
+    // rather than against either, so a modest encoder change does not fail it
+    // but a fallback to the defaults does.
+    expect(await meanPixelDifference(source, readFileSync(filePath))).toBeLessThan(25)
+  })
+
+  it('keeps the format it was given', async () => {
+    const filePath = path.join(directory, 'keep.jpg')
+    const source = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: { r: 90, g: 30, b: 30 } },
+    })
+      .jpeg()
+      .toBuffer()
+    writeFileSync(filePath, source)
+
+    await markFile(filePath, { machineReadable: true, visibleLabel: false })
+
+    expect((await sharp(readFileSync(filePath)).metadata()).format).toBe('jpeg')
   })
 })
 

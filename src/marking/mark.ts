@@ -76,6 +76,14 @@ const MIN_LABEL_WIDTH = 96
 const MARGIN_FRACTION = 0.025
 
 /**
+ * Quality for the re-encode that marking a lossy format forces.
+ *
+ * High enough that marking is not a visible downgrade, without returning a
+ * file several times larger than the one the provider sent.
+ */
+const RE_ENCODE_QUALITY = 92
+
+/**
  * Formats this build can mark.
  *
  * Honesty here beats a promise: XMP in a video container is
@@ -202,6 +210,7 @@ export async function markFile(
             : injectIntoXmp(existingXmp, provenance),
         ),
       filePath,
+      existing.format,
     )
 
     await write(filePath, current)
@@ -231,6 +240,7 @@ export async function markFile(
         .keepMetadata()
         .composite([{ input: label, gravity: gravityFor(placedAt) }]),
       filePath,
+      existing.format,
     )
 
     await write(destination, labelled)
@@ -246,9 +256,32 @@ export async function markFile(
   }
 }
 
-/** Renders a pipeline, reporting a failure against the file it came from. */
-async function run(pipeline: sharpType.Sharp, filePath: string): Promise<Buffer> {
-  return await pipeline.toBuffer().catch((error: unknown) => {
+/**
+ * Renders a pipeline, reporting a failure against the file it came from.
+ *
+ * Marking a lossy format costs a decode and a re-encode — sharp cannot add
+ * metadata without rewriting the file — so the encoder is told to stay close
+ * to the input rather than falling back to its defaults. Those defaults are
+ * quality 80 with subsampled colour, which took a 4K JPEG from 8.4 MB to
+ * 1.4 MB: a real loss, paid silently, for adding a line of metadata.
+ *
+ * This is not lossless — nothing about a second JPEG pass can be — but it is
+ * high enough that a generation is not visibly degraded by having been marked.
+ * PNG needs none of it and is left alone.
+ */
+async function run(
+  pipeline: sharpType.Sharp,
+  filePath: string,
+  format: string | undefined,
+): Promise<Buffer> {
+  const preserving =
+    format === 'jpeg' || format === 'jpg'
+      ? pipeline.jpeg({ quality: RE_ENCODE_QUALITY, chromaSubsampling: '4:4:4' })
+      : format === 'webp'
+        ? pipeline.webp({ quality: RE_ENCODE_QUALITY })
+        : pipeline
+
+  return await preserving.toBuffer().catch((error: unknown) => {
     throw new MediagenError(ERROR_CODE.FILE_ERROR, `Could not mark ${path.basename(filePath)}.`, {
       hint: 'The file may be corrupt or in a format this build cannot rewrite.',
       cause: error,

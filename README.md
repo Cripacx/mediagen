@@ -28,9 +28,18 @@ You:   Same thing with gemini-3-pro-image, 21:9, 4K, marked as AI-generated,
 
 Agent: npx -y mediagen image "A disused loading dock at dusk, wet concrete…"
          --model gemini-3-pro-image --aspect-ratio 21:9 --size 4K
-         --mark --output-name hero.png --json
-       → ./output/hero.png
+         --output-name hero.png --json
+       → ./output/hero.jpg
+
+       [looks at the image]
+
+       npx -y mediagen mark ./output/hero.jpg --visible-label
+         --label-position top-right --json
+       → ./output/hero.labelled.jpg
 ```
+
+It marked in a second pass, after seeing where the subject ended up — and put
+the label on the flat roofline rather than over the loading bay.
 
 Anything the CLI takes can be asked for in words — provider, model, aspect
 ratio, size, output name and directory, quality preset, video duration, an
@@ -99,8 +108,8 @@ npx -y mediagen config edit
 ```
 
 A menu of every setting with its current value and where that value came from —
-provider, model, key, output directory, quality preset, and whether generated
-media is marked by default. Each change is written as you make it.
+provider, model, key, output directory, quality preset, and what `mediagen
+mark` does by default. Each change is written as you make it.
 
 For CI and scripts, where there is no terminal, `config set` takes the same
 settings as arguments:
@@ -164,67 +173,64 @@ generated from Kie's own documentation rather than maintained by hand.
 
 ## Content marking
 
-The EU AI Act splits disclosure into two duties, so mediagen has two
+The EU AI Act splits disclosure into two duties, so `mediagen mark` has two
 independent switches:
 
-| Flag              | Duty                     | What it does                                           |
-| ----------------- | ------------------------ | ------------------------------------------------------ |
-| `--mark`          | make it machine-readable | writes IPTC/XMP `DigitalSourceType`, changes no pixels |
-| `--visible-label` | disclose it to people    | composites the EU's official AI-content label          |
+| Flag              | Duty                      | What it does                                       |
+| ----------------- | ------------------------- | -------------------------------------------------- |
+| machine-readable  | make it findable by tools | writes IPTC/XMP `DigitalSourceType`, on by default |
+| `--visible-label` | disclose it to people     | composites the EU's official AI-content label      |
 
-Both default to off; the skill suggests `--mark` for photorealistic or
-published output. To turn either on for every generation, set it once:
+**Generating never marks.** Marking is always a second command, run on the
+file afterwards:
+
+```bash
+npx -y mediagen image "a wide banner" --aspect-ratio 21:9 --size 2K --json
+npx -y mediagen mark ./output/image-….jpg --visible-label --label-position top-left
+```
+
+That is not ceremony. A visible label has to go where the subject is not, and
+only the finished image can say where that is. The machine-readable marker is
+not free either: adding metadata to a JPEG or WebP means decoding and
+re-encoding it, so marking costs a second lossy pass — worth paying
+deliberately, not as a side effect of asking for an image. mediagen re-encodes
+at high quality to keep that cost small, but it cannot make it zero.
+
+To have `mediagen mark` draw the visible label without being asked each time:
 
 ```bash
 npx -y mediagen config edit      # "AI marking by default"
 ```
 
-A configured default is still overridable per command with `--no-mark` or
+A configured default is still overridable per run with `--no-mark` or
 `--no-visible-label`.
 
 The visible label is the European Commission's own icon, published with the
 Code of Practice on Transparency of AI-generated Content and free to use
-without attribution. Two of its three variants are used, chosen automatically:
-**AI GENERATED** when the media came from a prompt alone, **AI MODIFIED** when
-you supplied media and a model altered it. The light or dark version is picked
-from what is actually under the corner it lands in, because a label nobody can
-read is not a disclosure. `mediagen mark` takes `--modified` to state the
-second claim for a file it cannot infer it from.
+without attribution. Two of its three variants are used: **AI GENERATED** by
+default, **AI MODIFIED** with `--modified`, for media a person made and a model
+altered. The light or dark version is picked from what is actually under the
+corner it lands in, because a label nobody can read is not a disclosure.
 
 It sits bottom-right by default. `--label-position` moves it to another corner,
 or `auto` puts it wherever the image has the least detail.
 
 > [!IMPORTANT]
 > A visible label is never written over its source. `mediagen mark photo.png
---visible-label` produces `photo.labelled.png` and leaves `photo.png` exactly
-> as it was; generating with `--visible-label` does the same, reporting the
-> labelled copy as `filePath` and the untouched generation as `originalPath`.
-> A label placed badly can be redone from an untouched original and from
-> nothing else. `--in-place` overwrites if you really mean to.
-
-The best order is to generate, look at the result, then mark it — the right
-corner depends on where the subject ended up, which only the finished image
-shows.
-
-`mediagen mark <file…>` applies them to media that already exists, in place.
-Existing provider metadata is never overwritten, and a second pass does not
-mark twice.
-
-> [!NOTE]
-> No C2PA manifest is written. A manifest only carries provenance if it is
-> signed, signing needs a certificate you do not have, and a test-signed manifest
-> would look like provenance while carrying none. Marking video is not supported
-> yet and is refused by name rather than silently skipped.
-
----
+--visible-label` produces `photo.labelled.png` and leaves the pixels of
+> `photo.png` exactly as they were, while writing the machine-readable marker
+> into it — so whichever of the two you publish carries the disclosure. A label
+> placed badly can be redone from an untouched original and from nothing else.
+> `--in-place` overwrites if you really mean to.
 
 ## Using it without an agent
 
 The skill is a wrapper around a CLI, and the CLI stands on its own.
 
 ```bash
-npx -y mediagen image "a wide banner" --aspect-ratio 21:9 --size 2K --mark
+npx -y mediagen image "a wide banner" --aspect-ratio 21:9 --size 2K
 npx -y mediagen image "make the sky stormy" --input ./photo.jpg
+npx -y mediagen mark ./output/image-….jpg --visible-label
 npx -y mediagen video "a marble rolling down a wooden track" --duration 6
 npx -y mediagen models
 ```
@@ -237,22 +243,19 @@ npm install -g mediagen
 
 ### Options
 
-| Option                     |                                                    |
-| -------------------------- | -------------------------------------------------- |
-| `--provider <name>`        | `gemini`, `openai`, `kie`                          |
-| `--model <id>`             | see `mediagen models`                              |
-| `--input <path>`           | source media to edit or transform                  |
-| `--aspect-ratio <ratio>`   | `1:1`, `16:9`, `9:16`, …                           |
-| `--size <size>`            | `1K`, `2K`, `4K`                                   |
-| `--duration <seconds>`     | video only                                         |
-| `--output-name <name>`     | the extension may select the format                |
-| `--output-dir <dir>`       | where to save                                      |
-| `--quality <preset>`       | `fast`, `balanced`, `quality`                      |
-| `--mark`                   | machine-readable AI-generated marker               |
-| `--visible-label`          | visible AI disclosure composited in                |
-| `--label-position <where>` | `bottom-right` (default), other corners, or `auto` |
-| `--json`                   | exactly one JSON object on stdout                  |
-| `--verbose` `--quiet`      | diagnostics on stderr                              |
+| Option                   |                                     |
+| ------------------------ | ----------------------------------- |
+| `--provider <name>`      | `gemini`, `openai`, `kie`           |
+| `--model <id>`           | see `mediagen models`               |
+| `--input <path>`         | source media to edit or transform   |
+| `--aspect-ratio <ratio>` | `1:1`, `16:9`, `9:16`, …            |
+| `--size <size>`          | `1K`, `2K`, `4K`                    |
+| `--duration <seconds>`   | video only                          |
+| `--output-name <name>`   | the extension may select the format |
+| `--output-dir <dir>`     | where to save                       |
+| `--quality <preset>`     | `fast`, `balanced`, `quality`       |
+| `--json`                 | exactly one JSON object on stdout   |
+| `--verbose` `--quiet`    | diagnostics on stderr               |
 
 > [!TIP]
 > Without the skill, prompt writing is on you. mediagen sends the prompt exactly
@@ -384,7 +387,9 @@ capability cannot exist in one and be missing from the other.
                      ↓
  request → model resolution → capability check → provider client
                      ↓
-       save to disk → optional AI marking → result
+                save to disk → result
+
+              mediagen mark → AI content marking
 ```
 
 Each provider is one self-contained directory declaring what it supports.

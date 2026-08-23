@@ -42,7 +42,31 @@ describe('the tool surface', () => {
       'check_configuration',
       'generate_media',
       'list_models',
+      'mark_media',
     ])
+  })
+
+  it('keeps marking out of generate_media, so a generation is only a generation', async () => {
+    // Marking is a second pass over a file that exists: the visible label has
+    // to go where the subject is not, and adding metadata to a lossy format
+    // costs a re-encode. Neither belongs in the call that makes the image.
+    const { tools } = await client.listTools()
+    const generate = tools.find((tool) => tool.name === 'generate_media')
+
+    const properties = Object.keys(generate?.inputSchema.properties ?? {})
+    expect(properties).not.toContain('mark')
+    expect(properties).not.toContain('visibleLabel')
+    expect(properties).not.toContain('labelPosition')
+  })
+
+  it('offers marking as its own tool, so the MCP server can still do it', async () => {
+    const { tools } = await client.listTools()
+    const mark = tools.find((tool) => tool.name === 'mark_media')
+
+    expect(mark?.description).toBeDefined()
+    expect(Object.keys(mark?.inputSchema.properties ?? {})).toEqual(
+      expect.arrayContaining(['filePath', 'visibleLabel', 'labelPosition']),
+    )
   })
 
   it('describes generate_media well enough to call without guessing', async () => {

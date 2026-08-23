@@ -8,10 +8,12 @@ import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../../core/
 import { labelledPathFor, markFile, type MarkingResult } from '../../marking/mark.js'
 import { LABEL_POSITIONS, isLabelPosition } from '../../marking/position.js'
 import { reportError, writeJson, writeLine, type Outcome } from '../output.js'
+import { loadConfig } from '../../config/resolve.js'
 
 interface MarkOptions {
   visibleLabel?: boolean
-  noMark?: boolean
+  /** `--no-mark` arrives here as false; absent means "not stated". */
+  mark?: boolean
   modified?: boolean
   labelPosition?: string
   inPlace?: boolean
@@ -63,15 +65,20 @@ a test-signed manifest would look like provenance while carrying none.`,
     .action(async (files: string[], options: MarkOptions) => {
       const json = options.json === true
       try {
-        const machineReadable = options.noMark !== true
+        // Both switches: what the flags say, else what is configured, else
+        // this command's own defaults. The marker is on by default because
+        // marking is the point of the command; the label is not, because it
+        // rewrites pixels. `layer` distinguishes a configured `false` from
+        // nothing configured at all, which a `??` on the value cannot.
+        const config = loadConfig()
+        const machineReadable = options.mark ?? configured(config.mark) ?? true
+        const wantsLabel = options.visibleLabel ?? configured(config.visibleLabel) ?? false
 
-        if (!machineReadable && options.visibleLabel !== true) {
+        if (!machineReadable && !wantsLabel) {
           throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, 'Nothing to do.', {
             hint: 'Drop --no-mark, or add --visible-label.',
           })
         }
-
-        const wantsLabel = options.visibleLabel === true
 
         if (options.output !== undefined && files.length > 1) {
           throw new MediagenError(
@@ -88,7 +95,7 @@ a test-signed manifest would look like provenance while carrying none.`,
               file,
               {
                 machineReadable,
-                visibleLabel: options.visibleLabel === true,
+                visibleLabel: wantsLabel,
                 labelKind: options.modified === true ? 'modified' : 'generated',
                 ...position(options.labelPosition),
                 ...(wantsLabel && options.inPlace !== true
@@ -108,6 +115,11 @@ a test-signed manifest would look like provenance while carrying none.`,
         outcome.code = reportError(error, json)
       }
     })
+}
+
+/** A configured value, or undefined when nothing set one. */
+function configured(setting: { value: boolean; layer: string }): boolean | undefined {
+  return setting.layer === 'default' ? undefined : setting.value
 }
 
 function report(results: readonly MarkingResult[], json: boolean): ExitCode {

@@ -12,7 +12,6 @@ import { createLogger } from '../../core/logger.js'
 import { generate } from '../../core/pipeline.js'
 import { loadConfig } from '../../config/resolve.js'
 import { PROVIDER_IDS } from '../../providers/registry.js'
-import { LABEL_POSITIONS, isLabelPosition } from '../../marking/position.js'
 import { QUALITY_PRESETS, isQualityPreset } from '../../types/media.js'
 import { reportError, reportResult, type Outcome } from '../output.js'
 import type { GenerationRequest, MediaKind } from '../../types/media.js'
@@ -27,9 +26,6 @@ interface GenerateOptions {
   outputName?: string
   outputDir?: string
   quality?: string
-  mark?: boolean
-  visibleLabel?: boolean
-  labelPosition?: string
   json?: boolean
   verbose?: boolean
   quiet?: boolean
@@ -47,14 +43,6 @@ export function buildGenerateCommand(kind: MediaKind, outcome: Outcome): Command
     .option('--output-name <name>', 'output file name; its extension may select the format')
     .option('--output-dir <dir>', 'directory to save into')
     .option('--quality <preset>', `one of: ${QUALITY_PRESETS.join(', ')}`)
-    .option('--mark', 'write the machine-readable AI-generated marker')
-    .option('--no-mark', 'skip it, overriding a configured default')
-    .option('--visible-label', 'composite a visible AI disclosure into the media')
-    .option('--no-visible-label', 'skip it, overriding a configured default')
-    .option(
-      '--label-position <where>',
-      `where the visible label sits: ${LABEL_POSITIONS.join(', ')}`,
-    )
     .option('--json', 'emit exactly one JSON object on stdout')
     .option('--verbose', 'diagnostics on stderr')
     .option('--quiet', 'suppress progress on stderr')
@@ -74,7 +62,10 @@ Examples:
 
 The prompt is sent exactly as written. Writing a specific prompt — subject,
 composition, light, camera or medium, materials, atmosphere — does far more
-for the result than any flag here.`,
+for the result than any flag here.
+
+Generating does not mark. Run mediagen mark on the saved file to add the
+AI-generated disclosure, once you can see where a visible label should go.`,
   )
 
   command.action(async (promptParts: string[], options: GenerateOptions) => {
@@ -123,11 +114,6 @@ function buildRequest(
     ...nonEmpty('output-dir', options.outputDir, 'outputDir'),
     ...quality(options.quality),
     ...(options.duration === undefined ? {} : { duration: options.duration }),
-    // Passed through only when stated, so an unstated flag falls to the
-    // configured default rather than overriding it with false.
-    ...(options.mark === undefined ? {} : { mark: options.mark }),
-    ...(options.visibleLabel === undefined ? {} : { visibleLabel: options.visibleLabel }),
-    ...labelPosition(options.labelPosition),
   }
 }
 
@@ -173,16 +159,4 @@ function parsePositiveNumber(raw: string): number {
     )
   }
   return parsed
-}
-
-function labelPosition(value: string | undefined) {
-  if (value === undefined) return {}
-
-  if (!isLabelPosition(value)) {
-    throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown label position "${value}".`, {
-      hint: `Use one of: ${LABEL_POSITIONS.join(', ')}.`,
-    })
-  }
-
-  return { labelPosition: value }
 }

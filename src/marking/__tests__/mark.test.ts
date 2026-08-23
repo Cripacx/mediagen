@@ -153,7 +153,7 @@ describe('both switches off', () => {
   })
 })
 
-describe('formats this build cannot mark (§10)', () => {
+describe('formats this build cannot mark', () => {
   it('refuses a video by name rather than silently leaving it unmarked', async () => {
     // Silently doing nothing would leave the caller believing a disclosure
     // duty had been met.
@@ -166,7 +166,7 @@ describe('formats this build cannot mark (§10)', () => {
     } catch (error) {
       expect(error).toMatchObject({ code: ERROR_CODE.VALIDATION_ERROR })
       expect((error as Error).message).toContain('video/mp4')
-      expect((error as { hint?: string }).hint).toContain('§10')
+      expect((error as { hint?: string }).hint).toMatch(/different operation/)
     }
   })
 

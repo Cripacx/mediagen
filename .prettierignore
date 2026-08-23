@@ -2,7 +2,3 @@ dist/
 coverage/
 output/
 *.generated.ts
-
-# Source documents, not code we own the formatting of.
-SPEC.md
-PORTABLE.md

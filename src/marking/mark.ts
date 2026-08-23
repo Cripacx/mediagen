@@ -157,7 +157,7 @@ function requireMarkable(filePath: string, data: Uint8Array): void {
     `This build cannot mark ${described}. It marks ${[...MARKABLE_MIME_TYPES].join(', ')}.`,
     {
       hint: described.startsWith('video/')
-        ? 'Writing XMP into a video container is a different operation and is not implemented; see SPEC.md §10.'
+        ? 'Writing XMP into a video container is a different operation from writing it into a still, and is not implemented.'
         : 'Convert the file to PNG, JPEG or WebP first.',
     },
   )

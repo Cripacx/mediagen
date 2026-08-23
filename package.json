@@ -18,7 +18,6 @@
     "dist",
     "skills",
     "README.md",
-    "SPEC.md",
     "server.json"
   ],
   "scripts": {

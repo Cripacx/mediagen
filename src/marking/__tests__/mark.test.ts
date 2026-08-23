@@ -373,6 +373,58 @@ describe('the visible label', () => {
   })
 })
 
+describe('asking for both markers at once', () => {
+  /**
+   * The case that matters most, and the one that was silently wrong: the
+   * unlabelled original is the file callers are told to keep and the one a
+   * script is most likely to publish. If the marker follows the label into
+   * the copy, that file goes out declaring nothing.
+   */
+  it('marks the original too, not only the labelled copy', async () => {
+    const file = await makeSolid('both-marked.png', { r: 40, g: 40, b: 40 })
+
+    const result = await markFile(file, {
+      machineReadable: true,
+      visibleLabel: true,
+      outputPath: labelledPathFor(file),
+    })
+
+    expect(hasDigitalSourceType(await xmpOf(result.sourcePath!))).toBe(true)
+    expect(hasDigitalSourceType(await xmpOf(result.filePath))).toBe(true)
+  })
+
+  it('leaves the pixels of the original alone while doing it', async () => {
+    const file = await makeSolid('both-pixels.png', { r: 40, g: 40, b: 40 })
+    const before = await sharp(file).raw().toBuffer()
+
+    const result = await markFile(file, {
+      machineReadable: true,
+      visibleLabel: true,
+      outputPath: labelledPathFor(file),
+    })
+
+    // Metadata added, no label drawn.
+    expect(await sharp(result.sourcePath).raw().toBuffer()).toEqual(before)
+    expect(Buffer.compare(before, await sharp(result.filePath).raw().toBuffer())).not.toBe(0)
+  })
+
+  it('records the same provenance in both files', async () => {
+    const file = await makeSolid('both-provenance.png', { r: 40, g: 40, b: 40 })
+
+    const result = await markFile(
+      file,
+      { machineReadable: true, visibleLabel: true, outputPath: labelledPathFor(file) },
+      { provider: 'gemini', model: 'gemini-3-pro-image' },
+    )
+
+    for (const written of [result.sourcePath!, result.filePath]) {
+      const xmp = await xmpOf(written)
+      expect(xmp, written).toContain(TRAINED_ALGORITHMIC_MEDIA)
+      expect(xmp, written).toContain('gemini-3-pro-image')
+    }
+  })
+})
+
 describe('both switches off', () => {
   it('does nothing at all', async () => {
     const file = await makePng()

@@ -178,8 +178,34 @@ export async function markFile(
   const existingXmp = existing.xmp?.toString('utf-8')
   const alreadyMarked = hasDigitalSourceType(existingXmp)
 
-  let pipeline = sharp(original).keepMetadata()
   let placedAt: Corner | undefined
+
+  // A file that already declares a source type is left alone and reported.
+  // Overwriting would discard whatever the provider recorded about itself.
+  const machineReadableWritten = options.machineReadable && !alreadyMarked
+
+  // The two markers are written in two passes rather than one, because they
+  // have different destinations. The marker goes into the original in place;
+  // the label goes into the copy. Doing both in a single pipeline sends the
+  // marker wherever the label went, which leaves the file the caller was told
+  // to keep carrying no disclosure at all — the one outcome this module
+  // exists to prevent.
+  let current: Uint8Array = original
+
+  if (machineReadableWritten) {
+    current = await run(
+      sharp(original)
+        .keepMetadata()
+        .withXmp(
+          existingXmp === undefined
+            ? buildXmpPacket(provenance)
+            : injectIntoXmp(existingXmp, provenance),
+        ),
+      filePath,
+    )
+
+    await write(filePath, current)
+  }
 
   if (options.visibleLabel) {
     const width = existing.width ?? 1024
@@ -197,32 +223,18 @@ export async function markFile(
       options.labelKind ?? 'generated',
       placedAt,
     )
-    pipeline = pipeline.composite([{ input: label, gravity: gravityFor(placedAt) }])
-  }
 
-  // A file that already declares a source type is left alone and reported.
-  // Overwriting would discard whatever the provider recorded about itself.
-  const machineReadableWritten = options.machineReadable && !alreadyMarked
-  if (machineReadableWritten) {
-    pipeline = pipeline.withXmp(
-      existingXmp === undefined
-        ? buildXmpPacket(provenance)
-        : injectIntoXmp(existingXmp, provenance),
+    // Composited onto `current`, so the copy inherits the marker rather than
+    // needing it written twice.
+    const labelled = await run(
+      sharp(current)
+        .keepMetadata()
+        .composite([{ input: label, gravity: gravityFor(placedAt) }]),
+      filePath,
     )
+
+    await write(destination, labelled)
   }
-
-  const marked = await pipeline.toBuffer().catch((error: unknown) => {
-    throw new MediagenError(ERROR_CODE.FILE_ERROR, `Could not mark ${path.basename(filePath)}.`, {
-      hint: 'The file may be corrupt or in a format this build cannot rewrite.',
-      cause: error,
-    })
-  })
-
-  await writeFile(destination, marked).catch(() => {
-    throw new MediagenError(ERROR_CODE.FILE_ERROR, `Cannot write ${destination}.`, {
-      hint: 'Check that the path exists and is writable.',
-    })
-  })
 
   return {
     filePath: destination,
@@ -232,6 +244,24 @@ export async function markFile(
     visibleLabelWritten: options.visibleLabel,
     ...(placedAt === undefined ? {} : { labelPosition: placedAt }),
   }
+}
+
+/** Renders a pipeline, reporting a failure against the file it came from. */
+async function run(pipeline: sharpType.Sharp, filePath: string): Promise<Buffer> {
+  return await pipeline.toBuffer().catch((error: unknown) => {
+    throw new MediagenError(ERROR_CODE.FILE_ERROR, `Could not mark ${path.basename(filePath)}.`, {
+      hint: 'The file may be corrupt or in a format this build cannot rewrite.',
+      cause: error,
+    })
+  })
+}
+
+async function write(destination: string, data: Uint8Array): Promise<void> {
+  await writeFile(destination, data).catch(() => {
+    throw new MediagenError(ERROR_CODE.FILE_ERROR, `Cannot write ${destination}.`, {
+      hint: 'Check that the path exists and is writable.',
+    })
+  })
 }
 
 /** `photo.png` becomes `photo.labelled.png`, beside the original. */

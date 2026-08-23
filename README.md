@@ -12,9 +12,13 @@ Say roughly what you want and let it decide the rest:
 ```
 You:   Make a hero image for the landing page, wide, something moody and industrial.
 
-Agent: [writes a full prompt, picks Gemini for 21:9, generates]
+Agent: npx -y mediagen image "A disused loading dock at dusk, wet concrete…"
+         --aspect-ratio 21:9 --json
        → ./output/image-20260823T094107Z.png
 ```
+
+It wrote the prompt out in full, knew 21:9 rules OpenAI out, and read the path
+back from `--json`.
 
 Or be exact, and it stops deciding:
 
@@ -22,7 +26,9 @@ Or be exact, and it stops deciding:
 You:   Same thing with gemini-3-pro-image, 21:9, 4K, marked as AI-generated,
        saved as hero.png.
 
-Agent: [passes all of it through unchanged]
+Agent: npx -y mediagen image "A disused loading dock at dusk, wet concrete…"
+         --model gemini-3-pro-image --aspect-ratio 21:9 --size 4K
+         --mark --output-name hero.png --json
        → ./output/hero.png
 ```
 

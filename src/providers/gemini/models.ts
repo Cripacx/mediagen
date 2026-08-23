@@ -111,6 +111,3 @@ export function defaultVideoModel(_quality: QualityPreset): string {
   // because a second model would make this a real decision.
   return 'gemini-omni-flash-preview'
 }
-
-/** Used to probe a credential cheaply, never for media. */
-export const GEMINI_PROBE_MODEL = 'gemini-3.5-flash'

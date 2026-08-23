@@ -185,6 +185,32 @@ describe('video as a second kind, not a second product', () => {
   })
 })
 
+describe('interactive commands without a terminal', () => {
+  it('refuses config edit and points at the scriptable path', async () => {
+    // The suite has no TTY, which is the same situation CI and an agent shell
+    // are in. Prompting there would hang forever waiting for input.
+    const { code, stderr } = await mediagen(['config', 'edit'])
+
+    expect(code).toBe(3)
+    expect(stderr).toContain('needs a terminal')
+    expect(stderr).toContain('config set')
+  })
+
+  it('refuses init and points at --stdin', async () => {
+    const { code, stderr } = await mediagen(['init'])
+
+    expect(code).toBe(3)
+    expect(stderr).toMatch(/--stdin/)
+  })
+
+  it('offers config edit in the command list', async () => {
+    const { stdout } = await mediagen(['config', '--help'])
+
+    expect(stdout).toContain('edit')
+    expect(stdout).toContain('interactively')
+  })
+})
+
 describe('secret handling', () => {
   it('exposes no flag anywhere that takes an API key as an argument', async () => {
     // Keys on the command line land in shell history and in the process list,

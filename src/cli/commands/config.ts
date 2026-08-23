@@ -17,6 +17,7 @@ import { loadConfig } from '../../config/resolve.js'
 import { verifyKey } from '../../config/verify.js'
 import { PROVIDERS, PROVIDER_IDS, findProvider, requireProvider } from '../../providers/registry.js'
 import { QUALITY_PRESETS, isQualityPreset } from '../../types/media.js'
+import { buildConfigEditCommand } from './configEdit.js'
 import { readSecret } from '../secretInput.js'
 import { reportError, writeDiagnostic, writeJson, writeLine, type Outcome } from '../output.js'
 import type { ConfigFile, Resolved } from '../../types/config.js'
@@ -32,6 +33,8 @@ export function buildConfigCommand(outcome: Outcome): Command {
     .addHelpText(
       'after',
       `
+Run \`mediagen config edit\` to change any of these interactively.
+
 Settable keys:
   <provider>            an API key, read from a hidden prompt or --stdin
   <provider>-model      the model that provider uses by default
@@ -55,6 +58,8 @@ On Windows there are no POSIX mode bits and the profile ACL protects it instead.
       outcome.code = reportError(error, json)
     }
   }
+
+  config.addCommand(buildConfigEditCommand(outcome))
 
   config
     .command('set')

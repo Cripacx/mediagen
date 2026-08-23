@@ -14,13 +14,14 @@ import { readConfigFile, writeConfigFile } from '../../config/file.js'
 import { maskSecret } from '../../config/layers.js'
 import { verifyKey } from '../../config/verify.js'
 import { PROVIDERS } from '../../providers/registry.js'
+import { PROVIDER_DEFAULT, pickModel, pickProvider } from '../prompts.js'
 import { readSecret } from '../secretInput.js'
 import { reportError, writeDiagnostic, writeLine, type Outcome } from '../output.js'
 import type { ConfigFile } from '../../types/config.js'
 
 export function buildInitCommand(outcome: Outcome): Command {
   return new Command('init')
-    .description('Set up mediagen interactively: choose providers, enter and verify each key')
+    .description('Set up mediagen interactively: providers, keys, models and a default')
     .exitOverride()
     .addHelpText(
       'after',
@@ -55,7 +56,7 @@ Requires a terminal. To configure without one:
 }
 
 async function wizard(): Promise<ExitCode> {
-  const { checkbox, select } = await import('@inquirer/prompts')
+  const { checkbox } = await import('@inquirer/prompts')
 
   writeDiagnostic('Setting up mediagen. Keys are never echoed and never stored in shell history.')
   writeDiagnostic('')
@@ -123,6 +124,17 @@ async function wizard(): Promise<ExitCode> {
 
     file = { ...file, apiKeys: { ...file.apiKeys, [provider.id]: key } }
     configured.push(provider.id)
+
+    // Asked here, while this provider is still the subject, rather than in a
+    // second pass at the end that would make the user recall which was which.
+    const model = await pickModel(provider, 'image', file.models?.[provider.id])
+
+    if (model === PROVIDER_DEFAULT) {
+      const { [provider.id]: _cleared, ...rest } = file.models ?? {}
+      file = { ...file, models: rest }
+    } else {
+      file = { ...file, models: { ...file.models, [provider.id]: model } }
+    }
   }
 
   if (configured.length === 0) {
@@ -133,10 +145,11 @@ async function wizard(): Promise<ExitCode> {
   const defaultProvider =
     configured.length === 1
       ? configured[0]!
-      : await select({
-          message: 'Which provider should be the default?',
-          choices: configured.map((id) => ({ name: id, value: id })),
-        })
+      : await pickProvider(
+          PROVIDERS.filter((provider) => configured.includes(provider.id)),
+          'Which provider should be the default?',
+          file.defaultProvider,
+        )
 
   file = { ...file, defaultProvider }
 

@@ -30,7 +30,8 @@ npx -y mediagen init
 ```
 
 An interactive wizard: pick providers, enter each key without it being echoed,
-verify each against the live API, choose a default. One key is enough to start.
+verify each against the live API, choose a model per provider, and set a
+default. One key is enough to start.
 
 Now just ask your agent for an image.
 
@@ -64,11 +65,22 @@ terminal.
 
 ## Configuration
 
-`mediagen init` covers the normal case. For CI and scripts, where there is no
-terminal:
+`mediagen init` covers first-time setup. To change something later:
+
+```bash
+npx -y mediagen config edit
+```
+
+A menu of every setting with its current value and where that value came from —
+provider, model, key, output directory, quality preset. Each change is written
+as you make it.
+
+For CI and scripts, where there is no terminal, `config set` takes the same
+settings as arguments:
 
 ```bash
 echo "$GEMINI_API_KEY" | npx -y mediagen config set gemini --stdin
+npx -y mediagen config set gemini-model gemini-3-pro-image
 ```
 
 To check what is configured and whether it still works:

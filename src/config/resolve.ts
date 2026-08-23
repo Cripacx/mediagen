@@ -22,6 +22,8 @@ export const ENV_VARS = {
   provider: 'MEDIAGEN_PROVIDER',
   outputDir: 'MEDIAGEN_OUTPUT_DIR',
   quality: 'MEDIAGEN_QUALITY',
+  mark: 'MEDIAGEN_MARK',
+  visibleLabel: 'MEDIAGEN_VISIBLE_LABEL',
 } as const
 
 /** `<PROVIDER>_MODEL`, derived so a new provider needs no edit here. */
@@ -39,7 +41,7 @@ export function loadConfig(layers: ConfigLayers = loadConfigLayers()): ResolvedC
   const outputDir =
     resolve(layers, ENV_VARS.outputDir, file.outputDir) ?? fromDefault(CONFIG_DEFAULTS.outputDir)
 
-  const rawQuality = resolve(layers, ENV_VARS.quality, file.quality)
+  const rawQuality = resolve(layers, ENV_VARS.quality, file.quality, isQualityPreset)
   const quality: Resolved<QualityPreset> =
     rawQuality && isQualityPreset(rawQuality.value)
       ? { ...rawQuality, value: rawQuality.value }
@@ -49,6 +51,13 @@ export function loadConfig(layers: ConfigLayers = loadConfigLayers()): ResolvedC
     defaultProvider,
     outputDir,
     quality,
+    mark: resolveBoolean(layers, ENV_VARS.mark, file.mark, CONFIG_DEFAULTS.mark),
+    visibleLabel: resolveBoolean(
+      layers,
+      ENV_VARS.visibleLabel,
+      file.visibleLabel,
+      CONFIG_DEFAULTS.visibleLabel,
+    ),
     apiKey(providerId) {
       const provider = findProvider(providerId)
       if (!provider) return undefined
@@ -106,4 +115,37 @@ export function assertSomeProviderUsable(config: ResolvedConfig): void {
   }
 
   requireApiKey(config, fallback)
+}
+
+/**
+ * Resolves a flag across the layers.
+ *
+ * A value that means neither yes nor no is treated as absent rather than as
+ * either, so a typo falls back to the documented default instead of quietly
+ * turning a disclosure duty on or off.
+ */
+function resolveBoolean(
+  layers: ConfigLayers,
+  envVar: string,
+  fileValue: boolean | undefined,
+  fallback: boolean,
+): Resolved<boolean> {
+  const raw = resolve(
+    layers,
+    envVar,
+    fileValue === undefined ? undefined : String(fileValue),
+    (value) => parseBoolean(value) !== undefined,
+  )
+  if (!raw) return fromDefault(fallback)
+
+  const parsed = parseBoolean(raw.value)
+  return parsed === undefined ? fromDefault(fallback) : { ...raw, value: parsed }
+}
+
+/** Accepts what a person would plausibly write for either answer. */
+export function parseBoolean(value: string): boolean | undefined {
+  const normalised = value.trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on'].includes(normalised)) return true
+  if (['0', 'false', 'no', 'off'].includes(normalised)) return false
+  return undefined
 }

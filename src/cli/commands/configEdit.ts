@@ -18,7 +18,7 @@ import { LAYER_LABEL, loadConfigLayers, maskSecret } from '../../config/layers.j
 import { loadConfig } from '../../config/resolve.js'
 import { verifyKey } from '../../config/verify.js'
 import { PROVIDERS, requireProvider } from '../../providers/registry.js'
-import { PROVIDER_DEFAULT, pickModel, pickProvider, pickQuality } from '../prompts.js'
+import { PROVIDER_DEFAULT, pickMarking, pickModel, pickProvider, pickQuality } from '../prompts.js'
 import { readSecret } from '../secretInput.js'
 import { reportError, writeDiagnostic, writeLine, type Outcome } from '../output.js'
 import type { ConfigFile } from '../../types/config.js'
@@ -58,7 +58,7 @@ Requires a terminal. To change settings without one, use \`config set\`.`,
     })
 }
 
-type Action = 'provider' | 'model' | 'key' | 'output-dir' | 'quality' | 'done'
+type Action = 'provider' | 'model' | 'key' | 'output-dir' | 'quality' | 'marking' | 'done'
 
 async function editor(): Promise<ExitCode> {
   const { select, input } = await import('@inquirer/prompts')
@@ -85,6 +85,10 @@ async function editor(): Promise<ExitCode> {
         {
           name: `Quality preset  —  ${config.quality.value}  [${LAYER_LABEL[config.quality.layer]}]`,
           value: 'quality',
+        },
+        {
+          name: `AI marking by default  —  ${describeMarking(config.mark.value, config.visibleLabel.value)}`,
+          value: 'marking',
         },
         { name: 'Done', value: 'done' },
       ],
@@ -156,6 +160,21 @@ async function editor(): Promise<ExitCode> {
         const chosen = await pickQuality(config.quality.value)
         writeConfigFile({ ...readConfigFile(), quality: chosen })
         warnIfShadowed('MEDIAGEN_QUALITY', 'the quality preset')
+        break
+      }
+
+      case 'marking': {
+        const chosen = await pickMarking({
+          mark: config.mark.value,
+          visibleLabel: config.visibleLabel.value,
+        })
+        writeConfigFile({
+          ...readConfigFile(),
+          mark: chosen.mark,
+          visibleLabel: chosen.visibleLabel,
+        })
+        warnIfShadowed('MEDIAGEN_MARK', 'the marking default')
+        warnIfShadowed('MEDIAGEN_VISIBLE_LABEL', 'the visible-label default')
         break
       }
     }
@@ -232,4 +251,9 @@ function keySummary(): string {
 
   if (configured.length === 0) return '  —  none configured'
   return `  —  ${configured.map((provider) => provider.id).join(', ')} configured`
+}
+
+function describeMarking(mark: boolean, visibleLabel: boolean): string {
+  if (!mark && !visibleLabel) return 'off'
+  return visibleLabel ? 'marker and visible label' : 'marker'
 }

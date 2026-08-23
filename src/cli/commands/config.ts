@@ -13,7 +13,7 @@ import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../../core/
 import { command } from '../../core/invocation.js'
 import { configFilePath, readConfigFile, writeConfigFile } from '../../config/file.js'
 import { LAYER_LABEL, loadConfigLayers, maskSecret } from '../../config/layers.js'
-import { loadConfig } from '../../config/resolve.js'
+import { loadConfig, parseBoolean } from '../../config/resolve.js'
 import { verifyKey } from '../../config/verify.js'
 import { PROVIDERS, PROVIDER_IDS, findProvider, requireProvider } from '../../providers/registry.js'
 import { QUALITY_PRESETS, isQualityPreset } from '../../types/media.js'
@@ -41,6 +41,8 @@ Settable keys:
   default-provider      one of: ${PROVIDER_IDS.join(', ')}
   output-dir            where generated media is written
   quality               one of: ${QUALITY_PRESETS.join(', ')}
+  mark                  true or false; the AI-generated marker by default
+  visible-label         true or false; the visible disclosure by default
 
 API keys are never accepted as command arguments: they would land in shell
 history and in the process list. Use the hidden prompt, or pipe the key in:
@@ -175,6 +177,18 @@ function applySetting(file: ConfigFile, key: string, value: string): ConfigFile 
     return { ...file, quality: value }
   }
 
+  if (key === 'mark' || key === 'visible-label') {
+    const parsed = parseBoolean(value)
+    if (parsed === undefined) {
+      throw new MediagenError(
+        ERROR_CODE.VALIDATION_ERROR,
+        `"${value}" is neither true nor false.`,
+        { hint: `Use: ${command(`config set ${key} true`)}` },
+      )
+    }
+    return key === 'mark' ? { ...file, mark: parsed } : { ...file, visibleLabel: parsed }
+  }
+
   const modelMatch = /^(.+)-model$/.exec(key)
   if (modelMatch) {
     const provider = requireProvider(modelMatch[1]!)
@@ -277,6 +291,8 @@ function rows(): Row[] {
     describe('default-provider', config.defaultProvider, false),
     describe('output-dir', config.outputDir, false),
     describe('quality', config.quality, false),
+    describe('mark', config.mark, false),
+    describe('visible-label', config.visibleLabel, false),
   ]
 
   for (const provider of PROVIDERS) {
@@ -413,6 +429,14 @@ function removeSetting(file: ConfigFile, key: string): ConfigFile {
     }
     case 'quality': {
       const { quality: _q, ...rest } = file
+      return rest
+    }
+    case 'mark': {
+      const { mark: _m, ...rest } = file
+      return rest
+    }
+    case 'visible-label': {
+      const { visibleLabel: _v, ...rest } = file
       return rest
     }
     default:

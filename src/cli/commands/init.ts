@@ -14,7 +14,7 @@ import { readConfigFile, writeConfigFile } from '../../config/file.js'
 import { maskSecret } from '../../config/layers.js'
 import { verifyKey } from '../../config/verify.js'
 import { PROVIDERS } from '../../providers/registry.js'
-import { PROVIDER_DEFAULT, pickModel, pickProvider } from '../prompts.js'
+import { PROVIDER_DEFAULT, pickMarking, pickModel, pickProvider } from '../prompts.js'
 import { readSecret } from '../secretInput.js'
 import { reportError, writeDiagnostic, writeLine, type Outcome } from '../output.js'
 import type { ConfigFile } from '../../types/config.js'
@@ -153,10 +153,25 @@ async function wizard(): Promise<ExitCode> {
 
   file = { ...file, defaultProvider }
 
+  // Asked last, because it is the one question that is not about getting
+  // set up but about what every future run should do.
+  const marking = await pickMarking({
+    mark: file.mark ?? false,
+    visibleLabel: file.visibleLabel ?? false,
+  })
+  file = { ...file, mark: marking.mark, visibleLabel: marking.visibleLabel }
+
   const path = writeConfigFile(file)
 
   writeDiagnostic('')
   writeDiagnostic(`Default provider: ${defaultProvider}`)
+  if (marking.mark) {
+    writeDiagnostic(
+      marking.visibleLabel
+        ? 'Generated media will carry the AI marker and a visible label.'
+        : 'Generated media will carry the AI marker.',
+    )
+  }
   writeDiagnostic(`Try it: ${command('image "a red bicycle in the rain"')}`)
   writeLine(path)
 

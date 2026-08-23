@@ -187,6 +187,16 @@ describe('settings resolution', () => {
     expect(config.quality.layer).toBe('default')
   })
 
+  it('skips an unrecognised preset and uses the next layer', () => {
+    // A typo in the environment should not discard what the file configures.
+    const config = loadConfig(
+      layers({ env: { MEDIAGEN_QUALITY: 'ludicrous' }, file: { quality: 'quality' } }),
+    )
+
+    expect(config.quality.value).toBe('quality')
+    expect(config.quality.layer).toBe('file')
+  })
+
   it('reports the layer that supplied each API key', () => {
     const provider = PROVIDERS[0]!
     const config = loadConfig(

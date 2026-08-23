@@ -71,11 +71,19 @@ export function loadConfigLayers(cwd: string = process.cwd()): ConfigLayers {
 /**
  * Resolves one setting across the layers. `fileValue` is the config file's
  * contribution, which the caller reads from its own typed field.
+ *
+ * `accept` rejects a value this setting cannot use — an unknown quality
+ * preset, a flag spelled `ture`. A rejected candidate is skipped rather than
+ * winning and then being discarded, so a typo in the environment falls
+ * through to the next layer instead of silently undoing what is configured
+ * there. Turning a disclosure off because someone mistyped a variable is the
+ * worse of the two directions to fail in.
  */
 export function resolve(
   layers: ConfigLayers,
   envVar: string,
   fileValue: string | undefined,
+  accept: (value: string) => boolean = () => true,
 ): Resolved<string> | undefined {
   const candidates: Array<[ConfigLayer, string | undefined]> = [
     ['environment', layers.env[envVar]],
@@ -83,7 +91,9 @@ export function resolve(
     ['file', fileValue],
   ]
 
-  const present = candidates.filter((entry): entry is [ConfigLayer, string] => usable(entry[1]))
+  const present = candidates.filter(
+    (entry): entry is [ConfigLayer, string] => usable(entry[1]) && accept(entry[1]),
+  )
   const winner = present[0]
   if (!winner) return undefined
 

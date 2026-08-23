@@ -72,8 +72,8 @@ npx -y mediagen config edit
 ```
 
 A menu of every setting with its current value and where that value came from —
-provider, model, key, output directory, quality preset. Each change is written
-as you make it.
+provider, model, key, output directory, quality preset, and whether generated
+media is marked by default. Each change is written as you make it.
 
 For CI and scripts, where there is no terminal, `config set` takes the same
 settings as arguments:
@@ -102,13 +102,15 @@ call for four different fixes.
 Settings resolve from the environment first, then `.env` in the working
 directory, then the config file:
 
-| Variable                                          | Purpose                       |
-| ------------------------------------------------- | ----------------------------- |
-| `GEMINI_API_KEY`, `OPENAI_API_KEY`, `KIE_API_KEY` | credentials; at least one     |
-| `MEDIAGEN_PROVIDER`                               | default provider              |
-| `GEMINI_MODEL`, `OPENAI_MODEL`, `KIE_MODEL`       | default model per provider    |
-| `MEDIAGEN_OUTPUT_DIR`                             | where media is saved          |
-| `MEDIAGEN_QUALITY`                                | `fast`, `balanced`, `quality` |
+| Variable                                          | Purpose                        |
+| ------------------------------------------------- | ------------------------------ |
+| `GEMINI_API_KEY`, `OPENAI_API_KEY`, `KIE_API_KEY` | credentials; at least one      |
+| `MEDIAGEN_PROVIDER`                               | default provider               |
+| `GEMINI_MODEL`, `OPENAI_MODEL`, `KIE_MODEL`       | default model per provider     |
+| `MEDIAGEN_OUTPUT_DIR`                             | where media is saved           |
+| `MEDIAGEN_QUALITY`                                | `fast`, `balanced`, `quality`  |
+| `MEDIAGEN_MARK`                                   | mark output by default         |
+| `MEDIAGEN_VISIBLE_LABEL`                          | add a visible label by default |
 
 > [!TIP]
 > A stale environment variable shadowing the key you just configured is the most
@@ -144,9 +146,18 @@ independent switches:
 | `--visible-label` | disclose it to people    | composites a visible label into the image              |
 
 Both default to off; the skill suggests `--mark` for photorealistic or
-published output. `mediagen mark <file…>` applies them to media that already
-exists, in place. Existing provider metadata is never overwritten, and a second
-pass does not mark twice.
+published output. To turn either on for every generation, set it once:
+
+```bash
+npx -y mediagen config edit      # "AI marking by default"
+```
+
+A configured default is still overridable per command with `--no-mark` or
+`--no-visible-label`.
+
+`mediagen mark <file…>` applies them to media that already exists, in place.
+Existing provider metadata is never overwritten, and a second pass does not
+mark twice.
 
 > [!NOTE]
 > No C2PA manifest is written. A manifest only carries provenance if it is

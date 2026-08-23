@@ -37,6 +37,10 @@ export interface ConfigFile {
   models?: Record<string, string>
   outputDir?: string
   quality?: QualityPreset
+  /** Default for the machine-readable AI marker. */
+  mark?: boolean
+  /** Default for the visible AI disclosure. */
+  visibleLabel?: boolean
 }
 
 /** What the pipeline actually runs with, once all three layers have been read. */
@@ -44,12 +48,25 @@ export interface ResolvedConfig {
   readonly defaultProvider: Resolved<string>
   readonly outputDir: Resolved<string>
   readonly quality: Resolved<QualityPreset>
+  readonly mark: Resolved<boolean>
+  readonly visibleLabel: Resolved<boolean>
   /** Resolved per provider, on use, never eagerly for all. */
   apiKey(providerId: string): Resolved<string> | undefined
   model(providerId: string): Resolved<string> | undefined
 }
 
+/**
+ * Both marking switches default to off, because both are the caller's
+ * decision to make rather than something to be opted out of.
+ */
 export const CONFIG_DEFAULTS = {
   outputDir: './output',
   quality: 'fast',
-} as const satisfies { outputDir: string; quality: QualityPreset }
+  mark: false,
+  visibleLabel: false,
+} as const satisfies {
+  outputDir: string
+  quality: QualityPreset
+  mark: boolean
+  visibleLabel: boolean
+}

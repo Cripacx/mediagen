@@ -96,17 +96,21 @@ export async function generate(
     log,
   })
 
-  // Marking happens after the file exists and before the path is
-  // reported, so a caller that reads the path always gets a marked file.
-  // Both switches default to off.
-  if (request.mark === true || request.visibleLabel === true) {
+  // Marking happens after the file exists and before the path is reported, so
+  // a caller that reads the path always gets a marked file. The request wins
+  // where it says anything; otherwise the configured default applies, which is
+  // off unless someone turned it on.
+  const machineReadable = request.mark ?? config.mark.value
+  const visibleLabel = request.visibleLabel ?? config.visibleLabel.value
+
+  if (machineReadable || visibleLabel) {
     const marking = await markFile(
       saved.filePath,
-      { machineReadable: request.mark === true, visibleLabel: request.visibleLabel === true },
+      { machineReadable, visibleLabel },
       { provider: provider.id, model },
     )
 
-    if (marking.alreadyMarked && request.mark === true) {
+    if (marking.alreadyMarked && machineReadable) {
       log.info(`${provider.label} already declared a digital source type; left as it was.`)
     }
   }

@@ -46,7 +46,9 @@ export function buildGenerateCommand(kind: MediaKind, outcome: Outcome): Command
     .option('--output-dir <dir>', 'directory to save into')
     .option('--quality <preset>', `one of: ${QUALITY_PRESETS.join(', ')}`)
     .option('--mark', 'write the machine-readable AI-generated marker')
+    .option('--no-mark', 'skip it, overriding a configured default')
     .option('--visible-label', 'composite a visible AI disclosure into the media')
+    .option('--no-visible-label', 'skip it, overriding a configured default')
     .option('--json', 'emit exactly one JSON object on stdout')
     .option('--verbose', 'diagnostics on stderr')
     .option('--quiet', 'suppress progress on stderr')
@@ -115,8 +117,10 @@ function buildRequest(
     ...nonEmpty('output-dir', options.outputDir, 'outputDir'),
     ...quality(options.quality),
     ...(options.duration === undefined ? {} : { duration: options.duration }),
-    ...(options.mark === true ? { mark: true } : {}),
-    ...(options.visibleLabel === true ? { visibleLabel: true } : {}),
+    // Passed through only when stated, so an unstated flag falls to the
+    // configured default rather than overriding it with false.
+    ...(options.mark === undefined ? {} : { mark: options.mark }),
+    ...(options.visibleLabel === undefined ? {} : { visibleLabel: options.visibleLabel }),
   }
 }
 

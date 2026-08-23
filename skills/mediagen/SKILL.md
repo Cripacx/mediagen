@@ -124,6 +124,10 @@ otherwise take it for a photograph.
 
 `npx -y mediagen mark <file...>` applies both to media that already exists.
 
+The user may have configured marking on by default. If they have, it happens
+without your asking; `--no-mark` and `--no-visible-label` turn it off for a
+single run when they explicitly do not want it.
+
 **Video cannot be marked yet.** Writing XMP into a video container is a
 different operation from writing it into a still, and this build does not do
 it — `--mark` on a video is refused by name rather than silently ignored. If a

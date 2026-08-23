@@ -1,7 +1,7 @@
 {
   "name": "mediagen",
   "version": "0.1.0",
-  "description": "Generate images and video from text prompts across Gemini, OpenAI and Kie AI \u2014 from a CLI, an MCP server, or an agent skill.",
+  "description": "An image and video generation skill for coding agents, across Gemini, OpenAI and Kie AI. Also usable as a CLI and an MCP server.",
   "type": "module",
   "engines": {
     "node": ">=20.11"
@@ -56,6 +56,9 @@
     "yaml": "^2.7.1"
   },
   "keywords": [
+    "agent-skill",
+    "claude",
+    "claude-code",
     "mcp",
     "modelcontextprotocol",
     "image-generation",
@@ -64,8 +67,7 @@
     "gemini",
     "openai",
     "kie",
-    "cli",
-    "agent-skill"
+    "cli"
   ],
   "license": "MIT",
   "author": "Christopher Leson",

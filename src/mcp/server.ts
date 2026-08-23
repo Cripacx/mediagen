@@ -22,6 +22,7 @@ import { generate, resolveModel } from '../core/pipeline.js'
 import { loadConfig } from '../config/resolve.js'
 import { LAYER_LABEL } from '../config/layers.js'
 import { PROVIDERS, PROVIDER_IDS, requireProvider } from '../providers/registry.js'
+import { LABEL_POSITIONS } from '../marking/position.js'
 import { MEDIA_KINDS, QUALITY_PRESETS } from '../types/media.js'
 import type { GenerationRequest } from '../types/media.js'
 
@@ -58,6 +59,12 @@ const GENERATE_SHAPE = {
   quality: z.enum(QUALITY_PRESETS).optional().describe('Trades speed and cost against fidelity'),
   mark: z.boolean().optional().describe('Write the machine-readable AI-generated marker'),
   visibleLabel: z.boolean().optional().describe('Composite a visible AI disclosure into the media'),
+  labelPosition: z
+    .enum(LABEL_POSITIONS)
+    .optional()
+    .describe(
+      'Where the visible label sits. Defaults to bottom-right; "auto" places it in whichever corner has the least detail',
+    ),
 }
 
 const MODELS_SHAPE = {
@@ -92,6 +99,7 @@ export function buildServer(): McpServer {
           ...(args.quality === undefined ? {} : { quality: args.quality }),
           ...(args.mark === undefined ? {} : { mark: args.mark }),
           ...(args.visibleLabel === undefined ? {} : { visibleLabel: args.visibleLabel }),
+          ...(args.labelPosition === undefined ? {} : { labelPosition: args.labelPosition }),
         }
 
         const result = await generate(request, { config: loadConfig(), log })

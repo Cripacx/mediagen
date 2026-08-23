@@ -109,6 +109,8 @@ released model works before this skill knows about it.
 --duration <seconds>    video only
 --mark                  machine-readable AI-generated marker
 --visible-label         visible AI disclosure composited into the image
+--label-position <where>  bottom-right (default), bottom-left, top-right,
+                          top-left, or auto
 ```
 
 ## Marking
@@ -123,6 +125,56 @@ image. It composites the European Commission's official AI-content icon, and
 picks the right variant on its own: "AI GENERATED" for a prompt-only image,
 "AI MODIFIED" when `--input` was used. Suggest it when the image will be shown
 to an audience who might otherwise take it for a photograph.
+
+### Marking in two passes
+
+When an image needs a visible label and you can see images, do it in two steps
+rather than one:
+
+1. **Generate without `--visible-label`.** The saved path comes back on stdout.
+2. **Open the image and look at it.** You wrote the prompt, but the model
+   decided the composition — where the subject actually ended up is something
+   only the file can tell you.
+3. **Mark it, naming the corner** that covers nothing important:
+
+```bash
+npx -y mediagen mark ./output/image-….png --visible-label --label-position top-left
+```
+
+`mediagen mark` is idempotent for the machine-readable marker — a file that
+already declares a source type is left alone and says so — so this second pass
+is safe on media that was already marked at generation time.
+
+Generate with `--visible-label` in one pass when you cannot view images, or
+when the caller asked for a specific corner up front and there is nothing to
+look at first.
+
+### Where the label goes
+
+**The default is `bottom-right`.** It is a fixed corner, not a computed one,
+so a disclosure lands where a viewer learns to look and a batch of images stays
+consistent.
+
+Two things _are_ computed per image, and you do not control either:
+
+- **Light or dark version** — chosen from the mean brightness of the corner the
+  label lands in. Below 128 it uses the light badge, above it the dark one.
+- **Size** — 20% of the image width, never below 96px, and clamped so it always
+  fits, with a margin of 2.5% of the shorter side.
+
+Use `--label-position <where>` when the default corner would cover something
+that matters: `bottom-right`, `bottom-left`, `top-right`, `top-left`, or
+`auto`.
+
+`auto` measures all four corners and picks the one with the least detail —
+lowest standard deviation across the colour channels, so flat sky wins over a
+face or a caption. Ties go to `bottom-right`. Reach for `auto` when you cannot
+see the image and the subject might be anywhere; name a corner when you know
+where the important part is.
+
+If you already know the composition — you wrote the prompt, after all — naming
+a corner is better than `auto`. `auto` only knows where the image is busy, not
+what in it matters.
 
 `npx -y mediagen mark <file...>` applies both to media that already exists.
 

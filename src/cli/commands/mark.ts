@@ -6,12 +6,14 @@
 import { Command } from 'commander'
 import { ERROR_CODE, EXIT_CODE, MediagenError, type ExitCode } from '../../core/errors.js'
 import { markFile, type MarkingResult } from '../../marking/mark.js'
+import { LABEL_POSITIONS, isLabelPosition } from '../../marking/position.js'
 import { reportError, writeJson, writeLine, type Outcome } from '../output.js'
 
 interface MarkOptions {
   visibleLabel?: boolean
   noMark?: boolean
   modified?: boolean
+  labelPosition?: string
   model?: string
   provider?: string
   json?: boolean
@@ -23,6 +25,10 @@ export function buildMarkCommand(outcome: Outcome): Command {
     .argument('<file...>', 'files to mark')
     .option('--visible-label', 'composite a visible AI disclosure into the media')
     .option('--modified', 'label it as human media a model altered, not media a model made')
+    .option(
+      '--label-position <where>',
+      `where the visible label sits: ${LABEL_POSITIONS.join(', ')}`,
+    )
     .option('--no-mark', 'skip the machine-readable marker (use with --visible-label)')
     .option('--provider <name>', 'record which provider produced it')
     .option('--model <id>', 'record which model produced it')
@@ -64,6 +70,7 @@ a test-signed manifest would look like provenance while carrying none.`,
                 machineReadable,
                 visibleLabel: options.visibleLabel === true,
                 labelKind: options.modified === true ? 'modified' : 'generated',
+                ...position(options.labelPosition),
               },
               {
                 ...(options.provider === undefined ? {} : { provider: options.provider }),
@@ -90,10 +97,28 @@ function report(results: readonly MarkingResult[], json: boolean): ExitCode {
     const notes: string[] = []
     if (result.machineReadableWritten) notes.push('marked')
     if (result.alreadyMarked) notes.push('already declared a source type, left as it was')
-    if (result.visibleLabelWritten) notes.push('visible label added')
+    if (result.visibleLabelWritten) {
+      notes.push(
+        result.labelPosition === undefined
+          ? 'visible label added'
+          : `visible label added, ${result.labelPosition}`,
+      )
+    }
 
     writeLine(`${result.filePath}: ${notes.join('; ')}`)
   }
 
   return EXIT_CODE.SUCCESS
+}
+
+function position(value: string | undefined) {
+  if (value === undefined) return {}
+
+  if (!isLabelPosition(value)) {
+    throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown label position "${value}".`, {
+      hint: `Use one of: ${LABEL_POSITIONS.join(', ')}.`,
+    })
+  }
+
+  return { labelPosition: value }
 }

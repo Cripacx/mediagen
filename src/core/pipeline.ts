@@ -16,6 +16,7 @@
 import { loadGenerationClient, requireKindSupport, requireProvider } from '../providers/registry.js'
 import { requireApiKey } from '../config/resolve.js'
 import { markFile } from '../marking/mark.js'
+import type { LabelPosition } from '../marking/position.js'
 import { defaultStem, saveMedia } from './output.js'
 import type { GenerationRequest, GenerationResult, QualityPreset } from '../types/media.js'
 import type { Logger, ProviderManifest } from '../types/provider.js'
@@ -112,6 +113,9 @@ export async function generate(
         // The Commission separates media a model made outright from human
         // media a model altered. The request already says which this is.
         labelKind: request.inputMedia === undefined ? 'generated' : 'modified',
+        ...(request.labelPosition === undefined
+          ? {}
+          : { labelPosition: request.labelPosition as LabelPosition }),
       },
       { provider: provider.id, model },
     )

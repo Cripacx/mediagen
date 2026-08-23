@@ -45,6 +45,11 @@ export interface GenerationRequest {
   readonly mark?: boolean
   /** Visible AI disclosure. */
   readonly visibleLabel?: boolean
+  /**
+   * Which corner the visible label sits in, or `auto` to place it where the
+   * image is calmest. Defaults to bottom-right.
+   */
+  readonly labelPosition?: string
 }
 
 /**

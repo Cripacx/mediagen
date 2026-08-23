@@ -191,6 +191,9 @@ from what is actually under the corner it lands in, because a label nobody can
 read is not a disclosure. `mediagen mark` takes `--modified` to state the
 second claim for a file it cannot infer it from.
 
+It sits bottom-right by default. `--label-position` moves it to another corner,
+or `auto` puts it wherever the image has the least detail.
+
 `mediagen mark <file…>` applies them to media that already exists, in place.
 Existing provider metadata is never overwritten, and a second pass does not
 mark twice.
@@ -222,21 +225,22 @@ npm install -g mediagen
 
 ### Options
 
-| Option                   |                                      |
-| ------------------------ | ------------------------------------ |
-| `--provider <name>`      | `gemini`, `openai`, `kie`            |
-| `--model <id>`           | see `mediagen models`                |
-| `--input <path>`         | source media to edit or transform    |
-| `--aspect-ratio <ratio>` | `1:1`, `16:9`, `9:16`, …             |
-| `--size <size>`          | `1K`, `2K`, `4K`                     |
-| `--duration <seconds>`   | video only                           |
-| `--output-name <name>`   | the extension may select the format  |
-| `--output-dir <dir>`     | where to save                        |
-| `--quality <preset>`     | `fast`, `balanced`, `quality`        |
-| `--mark`                 | machine-readable AI-generated marker |
-| `--visible-label`        | visible AI disclosure composited in  |
-| `--json`                 | exactly one JSON object on stdout    |
-| `--verbose` `--quiet`    | diagnostics on stderr                |
+| Option                     |                                                    |
+| -------------------------- | -------------------------------------------------- |
+| `--provider <name>`        | `gemini`, `openai`, `kie`                          |
+| `--model <id>`             | see `mediagen models`                              |
+| `--input <path>`           | source media to edit or transform                  |
+| `--aspect-ratio <ratio>`   | `1:1`, `16:9`, `9:16`, …                           |
+| `--size <size>`            | `1K`, `2K`, `4K`                                   |
+| `--duration <seconds>`     | video only                                         |
+| `--output-name <name>`     | the extension may select the format                |
+| `--output-dir <dir>`       | where to save                                      |
+| `--quality <preset>`       | `fast`, `balanced`, `quality`                      |
+| `--mark`                   | machine-readable AI-generated marker               |
+| `--visible-label`          | visible AI disclosure composited in                |
+| `--label-position <where>` | `bottom-right` (default), other corners, or `auto` |
+| `--json`                   | exactly one JSON object on stdout                  |
+| `--verbose` `--quiet`      | diagnostics on stderr                              |
 
 > [!TIP]
 > Without the skill, prompt writing is on you. mediagen sends the prompt exactly

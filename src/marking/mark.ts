@@ -28,8 +28,16 @@ import * as path from 'node:path'
 import { ERROR_CODE, MediagenError } from '../core/errors.js'
 import { mimeForExtension, sniffMediaType } from '../core/mediaType.js'
 import { EU_ICONS, type EuIconKind } from './euIcons.js'
+import {
+  DEFAULT_POSITION,
+  gravityFor,
+  quietestCorner,
+  regionFor,
+  regionStats,
+  type Corner,
+  type LabelPosition,
+} from './position.js'
 import type sharpType from 'sharp'
-import type { ChannelStats } from 'sharp'
 
 /**
  * sharp is loaded dynamically, so its factory is passed around rather than
@@ -83,6 +91,11 @@ export interface MarkingOptions {
    * media and the other did not. Defaults to `generated`.
    */
   readonly labelKind?: EuIconKind
+  /**
+   * Which corner the visible label sits in, or `auto` to place it where the
+   * image is calmest. Defaults to bottom-right.
+   */
+  readonly labelPosition?: LabelPosition
 }
 
 /** What produced the media, recorded alongside the marker. */
@@ -93,6 +106,8 @@ export interface MarkingProvenance {
 
 export interface MarkingResult {
   readonly filePath: string
+  /** Where the visible label went, once `auto` has been resolved. */
+  readonly labelPosition?: Corner
   /** True when this call wrote the machine-readable marker. */
   readonly machineReadableWritten: boolean
   /** True when the file already carried a digital source type. */
@@ -137,16 +152,25 @@ export async function markFile(
   const alreadyMarked = hasDigitalSourceType(existingXmp)
 
   let pipeline = sharp(original).keepMetadata()
+  let placedAt: Corner | undefined
 
   if (options.visibleLabel) {
+    const width = existing.width ?? 1024
+    const height = existing.height ?? 1024
+    const requested = options.labelPosition ?? DEFAULT_POSITION
+
+    placedAt =
+      requested === 'auto' ? await quietestCorner(sharp, original, width, height) : requested
+
     const label = await buildLabel(
       sharp,
       original,
-      existing.width ?? 1024,
-      existing.height ?? 1024,
+      width,
+      height,
       options.labelKind ?? 'generated',
+      placedAt,
     )
-    pipeline = pipeline.composite([{ input: label, gravity: 'southeast' }])
+    pipeline = pipeline.composite([{ input: label, gravity: gravityFor(placedAt) }])
   }
 
   // A file that already declares a source type is left alone and reported.
@@ -178,6 +202,7 @@ export async function markFile(
     machineReadableWritten,
     alreadyMarked,
     visibleLabelWritten: options.visibleLabel,
+    ...(placedAt === undefined ? {} : { labelPosition: placedAt }),
   }
 }
 
@@ -280,6 +305,7 @@ async function buildLabel(
   width: number,
   height: number,
   kind: EuIconKind,
+  corner: Corner,
 ): Promise<Buffer> {
   const shortest = Math.min(width, height)
   const margin = Math.round(shortest * MARGIN_FRACTION)
@@ -294,7 +320,9 @@ async function buildLabel(
   )
 
   const icon = EU_ICONS[kind]
-  const variant = (await isDarkCorner(sharp, original, width, height)) ? icon.light : icon.dark
+  const variant = (await isDarkCorner(sharp, original, width, height, corner))
+    ? icon.light
+    : icon.dark
   const labelHeight = Math.max(1, Math.round(labelWidth / variant.aspectRatio))
 
   const rendered = await sharp(Buffer.from(variant.svg), { density: 600 })
@@ -303,9 +331,14 @@ async function buildLabel(
     .toBuffer()
 
   // Extended rather than positioned, so the margin travels with the label and
-  // `gravity: 'southeast'` still puts it where it belongs.
+  // gravity still puts it where it belongs. The padding goes on the sides
+  // facing the edges the label is pushed against.
   return await sharp(rendered)
-    .extend({ right: margin, bottom: margin, background: TRANSPARENT })
+    .extend({
+      ...(corner.endsWith('right') ? { right: margin } : { left: margin }),
+      ...(corner.startsWith('bottom') ? { bottom: margin } : { top: margin }),
+      background: TRANSPARENT,
+    })
     .png()
     .toBuffer()
 }
@@ -323,31 +356,11 @@ async function isDarkCorner(
   original: Uint8Array,
   width: number,
   height: number,
+  corner: Corner,
 ): Promise<boolean> {
-  const sampleWidth = Math.max(1, Math.min(width, Math.round(width * 0.3)))
-  const sampleHeight = Math.max(1, Math.min(height, Math.round(height * 0.2)))
+  const stats = await regionStats(sharp, original, regionFor(corner, width, height))
 
-  try {
-    const { channels } = await sharp(original)
-      .extract({
-        left: Math.max(0, width - sampleWidth),
-        top: Math.max(0, height - sampleHeight),
-        width: sampleWidth,
-        height: sampleHeight,
-      })
-      .stats()
-
-    // Alpha is not brightness, and a fourth channel here is exactly that.
-    const colour = channels.slice(0, 3)
-    if (colour.length === 0) return false
-
-    const mean =
-      colour.reduce((total: number, channel: ChannelStats) => total + channel.mean, 0) /
-      colour.length
-    return mean < 128
-  } catch {
-    // A format sharp can decode but not crop is not worth failing over; the
-    // dark badge is the Commission's own default rendering.
-    return false
-  }
+  // A format sharp can decode but not crop is not worth failing over; the
+  // dark badge is the Commission's own default rendering.
+  return stats === undefined ? false : stats.mean < 128
 }

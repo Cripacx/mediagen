@@ -12,6 +12,7 @@ import { createLogger } from '../../core/logger.js'
 import { generate } from '../../core/pipeline.js'
 import { loadConfig } from '../../config/resolve.js'
 import { PROVIDER_IDS } from '../../providers/registry.js'
+import { LABEL_POSITIONS, isLabelPosition } from '../../marking/position.js'
 import { QUALITY_PRESETS, isQualityPreset } from '../../types/media.js'
 import { reportError, reportResult, type Outcome } from '../output.js'
 import type { GenerationRequest, MediaKind } from '../../types/media.js'
@@ -28,6 +29,7 @@ interface GenerateOptions {
   quality?: string
   mark?: boolean
   visibleLabel?: boolean
+  labelPosition?: string
   json?: boolean
   verbose?: boolean
   quiet?: boolean
@@ -49,6 +51,10 @@ export function buildGenerateCommand(kind: MediaKind, outcome: Outcome): Command
     .option('--no-mark', 'skip it, overriding a configured default')
     .option('--visible-label', 'composite a visible AI disclosure into the media')
     .option('--no-visible-label', 'skip it, overriding a configured default')
+    .option(
+      '--label-position <where>',
+      `where the visible label sits: ${LABEL_POSITIONS.join(', ')}`,
+    )
     .option('--json', 'emit exactly one JSON object on stdout')
     .option('--verbose', 'diagnostics on stderr')
     .option('--quiet', 'suppress progress on stderr')
@@ -121,6 +127,7 @@ function buildRequest(
     // configured default rather than overriding it with false.
     ...(options.mark === undefined ? {} : { mark: options.mark }),
     ...(options.visibleLabel === undefined ? {} : { visibleLabel: options.visibleLabel }),
+    ...labelPosition(options.labelPosition),
   }
 }
 
@@ -166,4 +173,16 @@ function parsePositiveNumber(raw: string): number {
     )
   }
   return parsed
+}
+
+function labelPosition(value: string | undefined) {
+  if (value === undefined) return {}
+
+  if (!isLabelPosition(value)) {
+    throw new MediagenError(ERROR_CODE.VALIDATION_ERROR, `Unknown label position "${value}".`, {
+      hint: `Use one of: ${LABEL_POSITIONS.join(', ')}.`,
+    })
+  }
+
+  return { labelPosition: value }
 }

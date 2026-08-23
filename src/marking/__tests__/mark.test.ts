@@ -47,6 +47,27 @@ async function makeSolid(
   return filePath
 }
 
+/** Which half of the image the label's dark pixels fall in. */
+async function darkBounds(filePath: string): Promise<{ right: boolean; bottom: boolean }> {
+  const { data, info } = await sharp(filePath).raw().toBuffer({ resolveWithObject: true })
+
+  let sumX = 0
+  let sumY = 0
+  let count = 0
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      if (data[(y * info.width + x) * info.channels]! < 100) {
+        sumX += x
+        sumY += y
+        count += 1
+      }
+    }
+  }
+
+  if (count === 0) throw new Error('no label pixels found')
+  return { right: sumX / count > info.width / 2, bottom: sumY / count > info.height / 2 }
+}
+
 /**
  * Counts pixels whose red channel matches, read from raw data.
  *
@@ -192,6 +213,65 @@ describe('the visible label', () => {
 
     expect(await countPixels(dark, (value) => value > 150)).toBeGreaterThan(500)
     expect(await countPixels(light, (value) => value < 100)).toBeGreaterThan(500)
+  })
+
+  it('defaults to the bottom-right corner', async () => {
+    const file = await makeSolid('pos.png', { r: 250, g: 250, b: 250 })
+
+    const result = await markFile(file, { machineReadable: false, visibleLabel: true })
+
+    expect(result.labelPosition).toBe('bottom-right')
+    expect(await darkBounds(file)).toMatchObject({ right: true, bottom: true })
+  })
+
+  it('puts the label where it is told', async () => {
+    const file = await makeSolid('topleft.png', { r: 250, g: 250, b: 250 })
+
+    const result = await markFile(file, {
+      machineReadable: false,
+      visibleLabel: true,
+      labelPosition: 'top-left',
+    })
+
+    expect(result.labelPosition).toBe('top-left')
+    expect(await darkBounds(file)).toMatchObject({ right: false, bottom: false })
+  })
+
+  it('auto places the label in the calmest corner', async () => {
+    // Busy on the right, flat on the left: the label belongs on the left.
+    const file = path.join(directory, 'busy.png')
+    const noise = Buffer.alloc(300 * 300 * 3)
+    for (let index = 0; index < noise.length; index += 1) noise[index] = (index * 97) % 256
+    const base = await sharp({
+      create: { width: 600, height: 300, channels: 3, background: { r: 250, g: 250, b: 250 } },
+    })
+      .png()
+      .toBuffer()
+    writeFileSync(
+      file,
+      await sharp(base)
+        .composite([
+          { input: noise, raw: { width: 300, height: 300, channels: 3 }, left: 300, top: 0 },
+        ])
+        .png()
+        .toBuffer(),
+    )
+
+    const result = await markFile(file, {
+      machineReadable: false,
+      visibleLabel: true,
+      labelPosition: 'auto',
+    })
+
+    expect(result.labelPosition?.endsWith('left')).toBe(true)
+  })
+
+  it('reports no position when no visible label was drawn', async () => {
+    const file = await makePng('nolabel.png')
+
+    const result = await markFile(file, { machineReadable: true, visibleLabel: false })
+
+    expect(result.labelPosition).toBeUndefined()
   })
 
   it('uses the modified label when asked', async () => {

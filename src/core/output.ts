@@ -1,7 +1,7 @@
 /**
  * Where generated media lands.
  *
- * Spec §8. Two of its rules are easy to state and easy to get subtly wrong:
+ * Two of the rules here are easy to state and easy to get subtly wrong:
  *
  * - Traversal outside the intended directory is refused. The check is made on
  *   the resolved path, not the supplied one, because `a/../../b` only looks
@@ -18,7 +18,7 @@ import { ERROR_CODE, MediagenError } from './errors.js'
 import { extensionForMime, sniffMediaType } from './mediaType.js'
 import type { Logger } from '../types/provider.js'
 
-/** Spec §10 revisits this for video, which is orders of magnitude larger. */
+/** Revisited for video, which is orders of magnitude larger. */
 export const MAX_OUTPUT_BYTES = 512 * 1024 * 1024
 
 export interface SaveOptions {

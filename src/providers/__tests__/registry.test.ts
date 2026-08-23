@@ -17,11 +17,11 @@ beforeEach(() => {
 })
 
 describe('registry', () => {
-  it('names the built-in default among the registered providers (§3.3)', () => {
+  it('names the built-in default among the registered providers', () => {
     expect(PROVIDER_IDS).toContain(BUILT_IN_DEFAULT_PROVIDER)
   })
 
-  it('rejects an unknown provider as invalid input, listing the real ones (§6.5)', () => {
+  it('rejects an unknown provider as invalid input, listing the real ones', () => {
     try {
       requireProvider('midjourney')
       expect.unreachable('should have thrown')
@@ -32,7 +32,7 @@ describe('registry', () => {
     }
   })
 
-  it('selects providers by declared kind rather than by name (§2.1)', () => {
+  it('selects providers by declared kind rather than by name', () => {
     for (const provider of providersFor('image')) {
       expect(provider.kinds).toContain('image')
     }
@@ -51,7 +51,7 @@ describe('registry', () => {
   })
 })
 
-describe('catalogue invariants (§12.1)', () => {
+describe('catalogue invariants', () => {
   it('lists every model it offers as a default', () => {
     for (const provider of PROVIDERS) {
       for (const kind of provider.kinds) {
@@ -77,7 +77,7 @@ describe('catalogue invariants (§12.1)', () => {
     }
   })
 
-  it('supplies a client for every kind it declares (§6.1)', () => {
+  it('supplies a client for every kind it declares', () => {
     for (const provider of PROVIDERS) {
       for (const kind of provider.kinds) {
         expect(provider.clients[kind], `${provider.id} declares ${kind} with no client`).toBeTypeOf(
@@ -87,7 +87,7 @@ describe('catalogue invariants (§12.1)', () => {
     }
   })
 
-  it('keeps credential metadata free of vendor SDK imports (§6.1)', () => {
+  it('keeps credential metadata free of vendor SDK imports', () => {
     // Reading the manifest must not require the transport to exist. If a
     // manifest ever imports its SDK directly, `doctor` and `config` start
     // paying for every vendor package in the tree.
@@ -98,7 +98,7 @@ describe('catalogue invariants (§12.1)', () => {
   })
 })
 
-describe('client caching (§12.1)', () => {
+describe('client caching', () => {
   it('does not hand one provider the client of another', async () => {
     // The natural mistake is a single-slot cache, and it fails silently: the
     // second request succeeds, against the wrong vendor.

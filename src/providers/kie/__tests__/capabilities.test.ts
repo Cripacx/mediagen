@@ -1,7 +1,7 @@
 /**
- * Kie capability resolution (§6.3, §6.4, §7.3, §7.4).
+ * Kie capability resolution.
  *
- * Kie is the provider that makes §6.4's warning concrete: the same model name
+ * Kie is the provider that makes the input-media problem concrete: the same model name
  * routes to different ids for generation and editing, and the field carrying
  * input URLs is named differently per model.
  */
@@ -27,7 +27,7 @@ function editableModel(): string {
   return found
 }
 
-describe('the generated table (§7.4)', () => {
+describe('the generated table', () => {
   it('is not empty', () => {
     // The generator refuses to write an empty table; this catches one being
     // committed by some other route.
@@ -38,7 +38,7 @@ describe('the generated table (§7.4)', () => {
     expect(LISTED_KIE_MODELS).toContain(DEFAULT_KIE_MODEL)
   })
 
-  it('gives every edit-capable model an input field name (§12.1)', () => {
+  it('gives every edit-capable model an input field name', () => {
     // Knowing a model can edit is useless without knowing what to call the
     // field. A descriptor with one and not the other would fail at request
     // time, in a way that reads like a Kie bug.
@@ -57,7 +57,7 @@ describe('the generated table (§7.4)', () => {
   })
 })
 
-describe('route selection (§6.4)', () => {
+describe('route selection', () => {
   it('sends the generation id when there is no input media', () => {
     const name = editableModel()
     const resolved = resolveKieRequest(name, request())
@@ -73,7 +73,7 @@ describe('route selection (§6.4)', () => {
   })
 
   it('refuses to edit with a listed model that cannot, in the shared wording', () => {
-    // The shared §6.3 check owns this message, so a user sees the same
+    // The shared capability check owns this message, so a user sees the same
     // sentence whichever provider refused them.
     const name = LISTED_KIE_MODELS.find(
       (candidate) => getKieModel(candidate)?.imageToImage === undefined,
@@ -86,7 +86,7 @@ describe('route selection (§6.4)', () => {
   })
 })
 
-describe('unlisted models (§7.3)', () => {
+describe('unlisted models', () => {
   it('passes an unknown id through rather than rejecting it', () => {
     const resolved = resolveKieRequest('some/model-released-tomorrow', request())
 
@@ -137,7 +137,7 @@ describe('parameters the model does not document', () => {
     expect(resolveKieRequest(name, request({ aspectRatio: '1:1' })).aspectRatio).toBe('1:1')
   })
 
-  it('rejects a ratio the model lists constraints for but does not include (§6.3)', () => {
+  it('rejects a ratio the model lists constraints for but does not include', () => {
     const name = LISTED_KIE_MODELS.find((candidate) => {
       const ratios = getKieModel(candidate)?.aspectRatios
       return ratios !== undefined && !ratios.includes('99:1')
@@ -150,7 +150,7 @@ describe('parameters the model does not document', () => {
   })
 })
 
-describe('prose-documented gaps (§7.4)', () => {
+describe('prose-documented gaps', () => {
   it('rejects a combination the schema allows but the prose excludes', () => {
     const model = getKieModel('gpt-image-2')
     if (!model?.unavailable || model.unavailable.length === 0) return

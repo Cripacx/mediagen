@@ -1,10 +1,9 @@
 /**
  * Live credential verification.
  *
- * Spec §3.5 requires a key to be verified with one minimal live request before
- * it is stored, so a typo surfaces at setup rather than at first use. Spec §4.5
- * requires `doctor` to distinguish the outcomes rather than collapsing them
- * into "broken":
+ * A key is verified with one minimal live request before it is stored, so a
+ * typo surfaces at setup rather than at first use. `doctor` then distinguishes
+ * the outcomes rather than collapsing them into "broken":
  *
  * - `missing` — nothing configured
  * - `rejected` — a key is there and the provider refused it
@@ -59,7 +58,7 @@ function isAuthFailure(error: unknown): boolean {
   return AUTH_FAILURE_PATTERN.test(message)
 }
 
-/** Verifies a key already resolved through the layers (§4.5). */
+/** Verifies a key already resolved through the layers. */
 export async function verifyProvider(
   config: ResolvedConfig,
   provider: ProviderManifest,

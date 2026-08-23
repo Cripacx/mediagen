@@ -1,10 +1,10 @@
 /**
  * Kie AI.
  *
- * Spec §6.1 — pure data and validation; the fetch client loads lazily.
+ * Pure data and validation; the fetch client loads lazily.
  *
  * `probe` is deliberately null. Kie exposes no endpoint cheap enough to verify
- * a key with: everything it offers starts a billable job. §4.5 has a name for
+ * a key with: everything it offers starts a billable job. There is a name for
  * that outcome — `unverifiable` — and reporting it honestly is better than
  * either spending a generation behind the user's back or pretending the key
  * was checked.

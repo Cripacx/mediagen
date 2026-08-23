@@ -1,7 +1,7 @@
 /**
  * Google Gemini.
  *
- * Spec §6.1 — pure data and validation only. The clients below are reached
+ * Pure data and validation only. The clients below are reached
  * through lazy factories, so importing this file costs nothing beyond the
  * catalogue and never loads the transport.
  */

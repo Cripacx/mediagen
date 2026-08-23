@@ -1,21 +1,21 @@
 /**
  * Google's image models.
  *
- * Spec §7.3 — this is not a gate. An id absent from here is still sent to
+ * This is not a gate. An id absent from here is still sent to
  * Google; the list drives defaults, hints and `mediagen models`.
  *
  * The accepted values come from `@google/genai`'s own
  * `ImageResponseFormatAspectRatio` and `ImageResponseFormatImageSize`, not
  * from the prose documentation, which publishes no exhaustive table. Those
  * types end in `(string & {})` — the vendor itself treats the list as a hint
- * rather than a closed set, which is §7.3's position arrived at independently.
+ * rather than a closed set — the same position this catalogue takes.
  *
  * Taking them from the SDK also caught a real error: the prose calls the
  * smallest size `512px`, the API calls it `512`. Hand-copying it would have
  * rejected a valid request with a confident wrong reason.
  *
  * Which model accepts which subset is still not documented per model, so the
- * per-model split below follows the prose (§7.4's drift check is the
+ * per-model split below follows the prose (the drift check is the
  * mitigation, not a guessed-at longer list).
  *
  * Sources: https://ai.google.dev/gemini-api/docs/image-generation and the
@@ -70,7 +70,7 @@ export const GEMINI_IMAGE_MODELS = [
 ] as const satisfies readonly ModelDescriptor[]
 
 /**
- * Spec §7.1 step 3. Deriving the default from the quality preset is a
+ * Deriving the default from the quality preset is a
  * provider-internal decision and does not leak into the shared interface.
  */
 export function defaultImageModel(quality: QualityPreset): string {
@@ -91,7 +91,7 @@ export function defaultImageModel(quality: QualityPreset): string {
  * still images, and pretending otherwise would reject-by-surprise later.
  *
  * Durations are not a documented `response_format` parameter for the omni
- * model, so none are declared: §6.3 does not police a field the vendor does
+ * model, so none are declared: validation does not police a field the vendor does
  * not document, and inventing a constraint here would reject valid requests.
  *
  * Source: https://ai.google.dev/gemini-api/docs/interactions/omni.md.txt
@@ -112,5 +112,5 @@ export function defaultVideoModel(_quality: QualityPreset): string {
   return 'gemini-omni-flash-preview'
 }
 
-/** Used to probe a credential cheaply (§4.5), never for media. */
+/** Used to probe a credential cheaply, never for media. */
 export const GEMINI_PROBE_MODEL = 'gemini-3.5-flash'

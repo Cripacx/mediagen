@@ -398,7 +398,7 @@ async function main() {
 
   // A page that could not be fetched would silently shrink the table, and a
   // shorter table reads exactly like full coverage of a shorter catalogue.
-  // The model would still work — an unlisted id is passed through (§7.3) —
+  // The model would still work — an unlisted id is passed through —
   // but it would lose its editing route, because the name of its input-image
   // field is only known from the page that failed to load.
   if (unreachable.length > 0 && !process.argv.includes('--allow-partial')) {

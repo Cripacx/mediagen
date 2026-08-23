@@ -1,5 +1,5 @@
 /**
- * The MCP server: the second adapter over the core (§1.2).
+ * The MCP server: the second adapter over the core.
  *
  * It translates input and formats output and does nothing else. Every tool
  * below reaches the same pipeline the CLI reaches, so a behaviour that exists
@@ -56,7 +56,7 @@ const GENERATE_SHAPE = {
     .describe('Output file name; its extension may select the format'),
   outputDir: z.string().optional().describe('Overrides the configured output directory'),
   quality: z.enum(QUALITY_PRESETS).optional().describe('Trades speed and cost against fidelity'),
-  mark: z.boolean().optional().describe('Write the machine-readable AI-generated marker (§9)'),
+  mark: z.boolean().optional().describe('Write the machine-readable AI-generated marker'),
   visibleLabel: z.boolean().optional().describe('Composite a visible AI disclosure into the media'),
 }
 
@@ -183,7 +183,7 @@ export function buildServer(): McpServer {
             text:
               usable.length > 0
                 ? `Configured: ${usable.map((entry) => entry.provider).join(', ')}. Default: ${config.defaultProvider.value}.`
-                : // §11: never ask a user to paste an API key into a chat.
+                : // Never ask a user to paste an API key into a chat.
                   'No provider is configured. Ask the user to run `mediagen init` in their terminal — do not ask them for an API key here.',
           },
         ],
@@ -199,12 +199,12 @@ export function buildServer(): McpServer {
 }
 
 /**
- * Spec §6.5's taxonomy, rendered for an agent.
+ * The shared error taxonomy, rendered for an agent.
  *
  * The code and the hint are both included, because an agent that can read
  * `CONFIG_ERROR` and the sentence next to it can do the right thing — which
  * for a configuration failure means telling the user to run `mediagen init`
- * rather than asking them for a key (§11).
+ * rather than asking them for a key.
  */
 function toolError(error: unknown) {
   const mapped = isMediagenError(error) ? error : toMediagenError(error)

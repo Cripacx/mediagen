@@ -7,10 +7,10 @@
  * the field carrying input image URLs is called `input_urls`, `image_input`,
  * `image_urls` or `reference_image_urls` depending on the model, some models
  * have no aspect-ratio or resolution parameter at all, and the output format
- * is spelled `jpg` by one model and `jpeg` by another (§6.4).
+ * is spelled `jpg` by one model and `jpeg` by another.
  *
  * The descriptors are therefore generated from Kie's own documentation rather
- * than hand-maintained — see `scripts/sync-kie-models.mjs` and §7.4. Hand
+ * than hand-maintained — see `scripts/sync-kie-models.mjs`. Hand
  * maintenance goes stale in both directions, and the dangerous direction is
  * upward: when a model gains an aspect ratio, a frozen table starts rejecting
  * valid requests with a confident error.
@@ -37,9 +37,8 @@ export interface KieModel extends KieModelShape {
 
 /**
  * Constraints Kie documents in prose, which therefore cannot appear in the
- * OpenAPI schema the table is generated from. Spec §7.4 asks for exactly this
- * separation: generated data in one file, hand-written exceptions in another,
- * clearly marked. Keyed by model name.
+ * OpenAPI schema the table is generated from. Hence the separation: generated
+ * data in one file, hand-written exceptions in another, clearly marked. Keyed by model name.
  */
 const UNAVAILABLE_COMBINATIONS: Readonly<Record<string, readonly UnavailableCombination[]>> = {
   'gpt-image-2': [
@@ -57,7 +56,7 @@ export const LISTED_KIE_MODELS = Object.keys(GENERATED_KIE_MODELS)
 
 /**
  * The descriptor for a model, or undefined when it is not in the generated
- * table and should be passed through to Kie as-is (§7.3).
+ * table and should be passed through to Kie as-is.
  */
 export function getKieModel(name: string): KieModel | undefined {
   const generated = (GENERATED_KIE_MODELS as Record<string, KieModelShape | undefined>)[name]
@@ -70,14 +69,14 @@ export function getKieModel(name: string): KieModel | undefined {
 /**
  * The descriptor used for a model id absent from the generated table: only the
  * parameters every documented image model shares, and no editing, because the
- * name of the input-image field cannot be guessed (§6.4).
+ * name of the input-image field cannot be guessed.
  */
 export function passthroughModel(name: string): KieModel {
   return { textToImage: name }
 }
 
 /**
- * Kie's shape translated into the shared vocabulary, so §6.3's validation is
+ * Kie's shape translated into the shared vocabulary, so capability validation is
  * the same code here as everywhere else.
  */
 export function toDescriptor(name: string, model: KieModel): ModelDescriptor {
@@ -90,7 +89,7 @@ export function toDescriptor(name: string, model: KieModel): ModelDescriptor {
   }
 }
 
-/** Spec §7.2 — what `mediagen models` lists for Kie. */
+/** What `mediagen models` lists for Kie. */
 export function listKieModels(): readonly ModelDescriptor[] {
   return LISTED_KIE_MODELS.map((name) =>
     toDescriptor(name, getKieModel(name) ?? passthroughModel(name)),
@@ -98,7 +97,7 @@ export function listKieModels(): readonly ModelDescriptor[] {
 }
 
 /**
- * Spec §7.1 step 3. Kie is an aggregator: the quality preset does not map onto
+ * Kie is an aggregator: the quality preset does not map onto
  * a speed tier the way it does at a single vendor, so the default is the same
  * model throughout and the preset is left to select nothing.
  */

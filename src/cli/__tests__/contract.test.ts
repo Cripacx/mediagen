@@ -1,5 +1,5 @@
 /**
- * The output contract (§4.2, §4.3), exercised through the built binary.
+ * The output contract, exercised through the built binary.
  *
  * These run the real process rather than calling `main` in-process. The
  * contract is about what lands on the caller's stdout and what the shell sees
@@ -29,7 +29,7 @@ async function mediagen(args: string[]): Promise<Outcome> {
       env: {
         ...process.env,
         // Nothing configured: a generation attempt must fail on configuration
-        // rather than reach a provider. §12.1 — no test issues a live request.
+        // rather than reach a provider. No test issues a live request.
         MEDIAGEN_PROVIDER: 'gemini',
       },
     })
@@ -46,7 +46,7 @@ beforeAll(() => {
   }
 }, 60_000)
 
-describe('--json mode (§4.2)', () => {
+describe('--json mode', () => {
   it('emits exactly one JSON object on stdout and nothing else', async () => {
     const { stdout } = await mediagen(['image', 'a cat', '--json'])
 
@@ -56,7 +56,7 @@ describe('--json mode (§4.2)', () => {
     expect(() => JSON.parse(lines[0]!) as unknown).not.toThrow()
   })
 
-  it('shapes a failure as §4.2 specifies, with an actionable hint', async () => {
+  it('shapes a failure as the contract specifies, with an actionable hint', async () => {
     const { stdout } = await mediagen(['image', 'a cat', '--json'])
     const payload = JSON.parse(stdout.trim()) as Record<string, unknown>
 
@@ -76,7 +76,7 @@ describe('--json mode (§4.2)', () => {
   })
 })
 
-describe('human mode (§4.2)', () => {
+describe('human mode', () => {
   it('writes nothing to stdout on failure', async () => {
     // A caller reading the last stdout line to find the saved path must not
     // pick up an error message and treat it as a path.
@@ -91,7 +91,7 @@ describe('human mode (§4.2)', () => {
     const { code, stdout } = await mediagen(['--help'])
 
     expect(code).toBe(0)
-    // Every command §4.1 names is reachable, including the ones that only
+    // Every command the tool offers is reachable, including the ones that only
     // report that they are not built yet.
     for (const command of ['image', 'video', 'config', 'doctor', 'init', 'mark', 'models']) {
       expect(stdout, `${command} is missing from help`).toContain(command)
@@ -99,7 +99,7 @@ describe('human mode (§4.2)', () => {
   })
 })
 
-describe('exit codes (§4.3)', () => {
+describe('exit codes', () => {
   it('returns 2 for invalid input', async () => {
     expect((await mediagen(['image'])).code).toBe(2)
     expect((await mediagen(['image', 'a cat', '--quality', 'ludicrous'])).code).toBe(2)
@@ -110,7 +110,7 @@ describe('exit codes (§4.3)', () => {
     expect((await mediagen(['image', 'a cat'])).code).toBe(3)
   })
 
-  it('returns 2 for an unsupported shape, before any network call (§6.3)', async () => {
+  it('returns 2 for an unsupported shape, before any network call', async () => {
     // Shape is checked before credentials, so this is 2 rather than 3 even
     // with nothing configured.
     const { code, stderr } = await mediagen([
@@ -139,14 +139,14 @@ describe('exit codes (§4.3)', () => {
   })
 })
 
-describe('video as a second kind, not a second product (§10)', () => {
+describe('video as a second kind, not a second product', () => {
   it('offers video with the same options as image', async () => {
     const [image, video] = await Promise.all([
       mediagen(['image', '--help']),
       mediagen(['video', '--help']),
     ])
 
-    // §2.1 — kind is a dimension. An option existing for one and not the
+    // Kind is a dimension. An option existing for one and not the
     // other would be the fork the specification forbids.
     const flags = (help: string) => [...help.matchAll(/^\s+(--[a-z-]+)/gm)].map((m) => m[1]!)
     for (const flag of flags(image.stdout)) {
@@ -185,7 +185,7 @@ describe('video as a second kind, not a second product (§10)', () => {
   })
 })
 
-describe('secret handling (§3.5)', () => {
+describe('secret handling', () => {
   it('exposes no flag anywhere that takes an API key as an argument', async () => {
     // Keys on the command line land in shell history and in the process list,
     // so this checks every command's help rather than only the root's.

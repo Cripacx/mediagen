@@ -1,7 +1,7 @@
 /**
  * Gemini image generation, over the Interactions API.
  *
- * Loaded lazily by the manifest (§6.1), so importing the registry never pulls
+ * Loaded lazily by the manifest, so importing the registry never pulls
  * the SDK into a `doctor` or `config` run.
  */
 
@@ -17,7 +17,7 @@ export const createImageClient: GenerationClientFactory = (): GenerationClient =
   async generate(request, options) {
     const input: InputPart[] = [{ type: 'text', text: request.prompt }]
 
-    // §6.4: Gemini takes source media inline, base64, in the same input array
+    // Gemini takes source media inline, base64, in the same input array
     // under `data` with an explicit `mime_type`. There is no upload step.
     if (request.inputMedia !== undefined) {
       const source = await loadInputMedia(request.inputMedia)
@@ -51,7 +51,7 @@ export const createImageClient: GenerationClientFactory = (): GenerationClient =
     if (!image) {
       // A response carrying only text is how Gemini declines without an HTTP
       // error: it explains itself instead of generating. Reporting that as an
-      // API failure would send the user looking in the wrong place (§6.2).
+      // API failure would send the user looking in the wrong place.
       const explanation = parts.find((part) => part.type === 'text')
       throw new MediagenError(
         ERROR_CODE.CONTENT_BLOCKED,

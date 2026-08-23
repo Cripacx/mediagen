@@ -1,17 +1,17 @@
 /**
  * Capability validation, shared by every provider.
  *
- * Spec §6.3 — providers differ in the shapes they accept, and a request that
+ * Providers differ in the shapes they accept, and a request that
  * cannot succeed must fail before it is sent, naming the reason and the
  * supported values. Never silently substitute a different shape: a user who
  * asked for 21:9 and received 1:1 without being told has been lied to.
  *
  * This is data-driven off `ModelDescriptor` so a provider declares its
- * constraints rather than reimplementing the checks (§6.1).
+ * constraints rather than reimplementing the checks.
  *
  * Two absences mean different things and are treated differently:
  *
- * - The model is not in the catalogue at all. §7.3 says send it anyway; with
+ * - The model is not in the catalogue at all. It is sent anyway; with
  *   nothing known about it there is nothing to validate.
  * - The model is listed but declares no constraint for a field. The vendor
  *   documents no such parameter, so the field is not ours to police.
@@ -35,7 +35,7 @@ function reject(field: string, value: string, model: string, allowed: readonly s
  * Validates a request against one catalogue entry.
  *
  * `descriptor` is undefined for a model outside the catalogue, which is not an
- * error — see §7.3 and the note above.
+ * error — see the note above.
  */
 export function validateAgainst(
   request: GenerationRequest,
@@ -81,7 +81,7 @@ export function validateAgainst(
   }
 }
 
-/** Finds a catalogue entry by id, or undefined when the model is unlisted (§7.3). */
+/** Finds a catalogue entry by id, or undefined when the model is unlisted. */
 export function findModel(
   models: readonly ModelDescriptor[],
   id: string,

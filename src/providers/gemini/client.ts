@@ -1,7 +1,7 @@
 /**
  * The `@google/genai` client, shared by the image and text clients.
  *
- * Spec §6.1 keeps this out of the manifest so that `doctor`, `config` and the
+ * Kept out of the manifest so that `doctor`, `config` and the
  * registry never load the SDK. It is reached only through the manifest's lazy
  * factories, at the moment Gemini is actually used.
  *
@@ -21,7 +21,7 @@ export function createGenAI(apiKey: string): GoogleGenAI {
 }
 
 /**
- * Spec §6.5 — maps the SDK's errors onto the shared taxonomy. The upstream
+ * Maps the SDK's errors onto the shared taxonomy. The upstream
  * message is never forwarded: Google's 400s quote the request back, which can
  * echo the prompt.
  *

@@ -1,5 +1,5 @@
 /**
- * Output handling (§8).
+ * Output handling.
  */
 
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
@@ -28,7 +28,7 @@ afterEach(() => {
   rmSync(directory, { recursive: true, force: true })
 })
 
-describe('path safety (§8)', () => {
+describe('path safety', () => {
   it('refuses a name that resolves outside the output directory', () => {
     expect(() =>
       resolveOutputPath({
@@ -80,7 +80,7 @@ describe('path safety (§8)', () => {
   })
 })
 
-describe('extension reconciliation (§8)', () => {
+describe('extension reconciliation', () => {
   it('corrects a mismatched extension and says so rather than doing it silently', async () => {
     const saved = await saveMedia(PNG, {
       outputDir: directory,
@@ -133,7 +133,7 @@ describe('extension reconciliation (§8)', () => {
   })
 })
 
-describe('bounds (§8)', () => {
+describe('bounds', () => {
   it('rejects an empty response rather than writing a zero-byte file', async () => {
     await expect(
       saveMedia(new Uint8Array(0), {

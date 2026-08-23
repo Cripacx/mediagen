@@ -10,10 +10,10 @@
  * ratios listed here are exactly those its sizes actually produce, and the
  * client translates a requested ratio into the matching size. Listing 16:9
  * would be a lie: OpenAI's widest image is 1536×1024, which is 3:2, and
- * dall-e-3's 1792×1024, which is 7:4. Neither is 16:9, and §6.3 says a user
- * who asked for one shape and received another has been lied to by the tool.
+ * dall-e-3's 1792×1024, which is 7:4. Neither is 16:9, and a user who asked
+ * for one shape and received another has been lied to by the tool.
  *
- * Spec §7.3 — none of this is a gate. An unlisted model id is still sent.
+ * None of this is a gate. An unlisted model id is still sent.
  */
 
 import type { ModelDescriptor } from '../../types/provider.js'
@@ -89,7 +89,7 @@ export function sizeTableFor(model: string): Readonly<Record<string, string>> {
   return GPT_IMAGE_SIZES
 }
 
-/** Spec §7.1 step 3 — provider-internal, and does not leak into the interface. */
+/** Provider-internal, and does not leak into the shared interface. */
 export function defaultImageModel(quality: QualityPreset): string {
   switch (quality) {
     case 'quality':
@@ -104,7 +104,7 @@ export function defaultImageModel(quality: QualityPreset): string {
 /**
  * The `quality` value the API takes. The gpt-image family and dall-e-3 use
  * different vocabularies for the same idea, which is exactly the sort of
- * vendor detail §7.1 says must stay inside the provider.
+ * vendor detail that must stay inside the provider.
  */
 export function apiQuality(model: string, preset: QualityPreset): string {
   if (model.startsWith('dall-e-3')) {

@@ -1,5 +1,5 @@
 /**
- * Hints have to name a command the caller can actually run (§4.2).
+ * Hints have to name a command the caller can actually run.
  */
 
 import { afterEach, describe, expect, it } from 'vitest'

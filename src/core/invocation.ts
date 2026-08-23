@@ -1,7 +1,7 @@
 /**
  * How this process was invoked, so hints name a command that actually works.
  *
- * Spec §4.2 requires a hint to name a concrete next action. "Run: mediagen
+ * A hint has to name a concrete next action. "Run: mediagen
  * config set gemini" is not one for someone who reached the tool through
  * `npx mediagen` and has nothing on their PATH — which is the normal case for
  * anyone who installed the agent skill, since that installs no CLI at all.

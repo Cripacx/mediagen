@@ -1,5 +1,5 @@
 /**
- * Resolving a request against the selected Kie AI model (§6.3).
+ * Resolving a request against the selected Kie AI model.
  *
  * Kie routes generation and editing through *different model ids* for the same
  * model name, so resolution here does more than validate: it picks the id to
@@ -7,7 +7,7 @@
  * wrong endpoint.
  *
  * An unlisted model id has nothing to validate against, so the request goes
- * through and Kie decides (§7.3).
+ * through and Kie decides.
  */
 
 import { ERROR_CODE, MediagenError } from '../../core/errors.js'
@@ -47,10 +47,10 @@ export function resolveKieRequest(name: string, request: GenerationRequest): Res
   // For a listed model the shared check above has already refused an edit it
   // cannot do, using the same wording every provider uses. What is left is the
   // unlisted case, which the shared check deliberately says nothing about
-  // (§7.3) but which cannot be edited regardless: the field carrying input
+  // but which cannot be edited regardless: the field carrying input
   // URLs is called input_urls, image_input, image_urls or
   // reference_image_urls depending on the model, and that is not a guess worth
-  // making (§6.4).
+  // making.
   if (wantsEdit && (model.imageToImage === undefined || model.imageInputField === undefined)) {
     throw new MediagenError(
       ERROR_CODE.VALIDATION_ERROR,
@@ -69,7 +69,7 @@ export function resolveKieRequest(name: string, request: GenerationRequest): Res
 
   const modelId = wantsEdit ? model.imageToImage! : model.textToImage!
 
-  // Prose-documented gaps the generated table cannot express (§7.4).
+  // Prose-documented gaps the generated table cannot express.
   if (request.aspectRatio !== undefined && request.size !== undefined && model.unavailable) {
     const blocked = model.unavailable.find(
       (entry) => entry.aspectRatio === request.aspectRatio && entry.resolution === request.size,

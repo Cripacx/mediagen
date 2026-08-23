@@ -8,7 +8,7 @@
  *   POST /api/file-base64-upload     stage a local input image
  *
  * The upload step exists because Kie takes input images as URLs rather than
- * inline data (§6.4), so a local file has to be put somewhere Kie can fetch it
+ * inline data, so a local file has to be put somewhere Kie can fetch it
  * before it can be referenced.
  *
  * Kie answers with HTTP 200 and an error code in the body more often than with
@@ -120,7 +120,7 @@ function httpError(status: number, stage: string): MediagenError {
 }
 
 /**
- * Spec §6.5 — the upstream message is not forwarded, because Kie echoes the
+ * The upstream message is not forwarded, because Kie echoes the
  * prompt back in validation errors. It is kept as `cause` for --verbose.
  */
 function envelopeError(code: number, message: string | undefined, stage: string): MediagenError {

@@ -1,5 +1,5 @@
 /**
- * The agent skill (§11).
+ * The agent skill.
  *
  * A skill is documentation, so most of it cannot be tested. What can be
  * tested is that it does not contradict the tool: a skill that names a flag
@@ -25,7 +25,7 @@ const SKILL = readFileSync(
 /** Prose is soft-wrapped, so sentence assertions match against one line. */
 const PROSE = SKILL.replace(/\s+/g, ' ')
 
-describe('what §11 requires of the skill', () => {
+describe('what the skill has to tell an agent', () => {
   it('tells the agent to invoke the CLI with the --json contract', () => {
     expect(PROSE).toMatch(/mediagen image "<prompt>" --json/)
   })
@@ -45,7 +45,7 @@ describe('what §11 requires of the skill', () => {
   })
 
   it('carries the prompt-writing guidance', () => {
-    // §5's guidance lives here now rather than in the pipeline, so it has to
+    // The prompt guidance lives here now rather than in the pipeline, so it has to
     // be complete: this is the only place it exists.
     for (const dimension of [
       'Subject',

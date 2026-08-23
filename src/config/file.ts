@@ -1,7 +1,7 @@
 /**
  * The per-machine config file written by `init` and `config set`.
  *
- * Spec §3.4. This is the only file the tool writes. Environment variables and
+ * This is the only file the tool writes. Environment variables and
  * `.env` files belong to the user: they are read and never modified.
  */
 
@@ -17,7 +17,7 @@ const APP_DIR_NAME = 'mediagen'
 const SECRET_FILE_MODE = 0o600
 
 /**
- * Spec §3.4 — XDG when set, the Windows roaming profile on win32, otherwise
+ * XDG when set, the Windows roaming profile on win32, otherwise
  * the XDG default.
  */
 export function configDirPath(): string {
@@ -39,7 +39,7 @@ export function configFilePath(): string {
 }
 
 /**
- * Spec §3.4 — a missing or malformed file resolves to empty configuration, so
+ * A missing or malformed file resolves to empty configuration, so
  * a broken file never blocks a run that has working environment credentials.
  */
 export function readConfigFile(): ConfigFile {
@@ -57,7 +57,7 @@ export function readConfigFile(): ConfigFile {
 /**
  * Writes the config file with owner-only permissions where the platform has
  * them. Windows has no POSIX mode bits; there the ACL on the user profile is
- * what protects the file, which §3.4 asks us to say plainly rather than imply
+ * what protects the file, which is worth saying plainly rather than implying
  * a protection that is not there.
  */
 export function writeConfigFile(config: ConfigFile): string {

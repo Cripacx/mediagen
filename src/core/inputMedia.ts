@@ -1,7 +1,7 @@
 /**
  * Reading the source file for an edit or transformation.
  *
- * Spec §8 sets three rules that all apply before a single byte is decoded:
+ * Three rules apply before a single byte is decoded:
  * bound how much is read into memory, follow symlinks safely, and refuse
  * anything that is not a regular file. The order matters — checking the size
  * after reading is not a bound, and a size check on the link rather than its
@@ -14,7 +14,7 @@ import { ERROR_CODE, MediagenError } from './errors.js'
 import { mimeForExtension, sniffMediaType } from './mediaType.js'
 
 /**
- * Spec §10 asks for these to be revisited for video, where a source frame is
+ * These want revisiting for video, where a source frame is
  * still an image but the output is not. This bounds the input only.
  */
 export const MAX_INPUT_BYTES = 32 * 1024 * 1024

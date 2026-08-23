@@ -1,7 +1,7 @@
 /**
  * The CLI output contract, and the only module that writes to stdout.
  *
- * Spec §4.2 is the interface the skill and every script depend on:
+ * This is the interface the skill and every script depend on:
  *
  * - Human mode: a short summary on stdout with the saved path as the **last
  *   line**. Diagnostics and logs go to stderr.
@@ -49,7 +49,7 @@ export function writeDiagnostic(line: string): void {
   process.stderr.write(`${line}\n`)
 }
 
-/** The success object, exactly as §4.2 specifies it. */
+/** The success object the contract specifies. */
 export function reportResult(result: GenerationResult, json: boolean): ExitCode {
   if (json) {
     writeJson({
@@ -66,7 +66,7 @@ export function reportResult(result: GenerationResult, json: boolean): ExitCode 
   }
 
   writeLine(`Generated ${result.kind} with ${result.provider}/${result.model}`)
-  // §4.2: the saved path is the last line, so `$(mediagen image …| tail -1)`
+  // The saved path is the last line, so `$(mediagen image …| tail -1)`
   // is a supported way to use this.
   writeLine(result.filePath)
   return EXIT_CODE.SUCCESS

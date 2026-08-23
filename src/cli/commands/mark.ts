@@ -1,5 +1,5 @@
 /**
- * `mediagen mark` (§9) — applies the same two markings to media that already
+ * `mediagen mark` — applies the same two markings to media that already
  * exists, in place.
  */
 

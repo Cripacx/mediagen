@@ -1,12 +1,16 @@
 # mediagen
 
-One interface for generating images and video across several commercial
-providers — so you can pick the right model for a task without learning five
+[![npm](https://img.shields.io/npm/v/mediagen)](https://www.npmjs.com/package/mediagen)
+[![CI](https://github.com/Cripacx/mediagen/actions/workflows/ci.yml/badge.svg)](https://github.com/Cripacx/mediagen/actions/workflows/ci.yml)
+[![node](https://img.shields.io/node/v/mediagen)](https://nodejs.org)
+[![licence](https://img.shields.io/npm/l/mediagen)](LICENSE)
+
+**One interface for generating images and video across several commercial
+providers** — so you can pick the right model for a task without learning five
 different APIs.
 
-Reachable three ways: a **command line**, an **MCP server**, and an **agent
-skill**. All three run the same pipeline, so anything one can do, all of them
-can.
+Reachable three ways, all running the same pipeline: a **command line**, an
+**MCP server**, and an **agent skill**.
 
 ```bash
 npx -y mediagen image "a red steel bicycle against a wet brick wall, overcast light, 50mm" --json
@@ -23,66 +27,63 @@ npx -y mediagen image "a red steel bicycle against a wet brick wall, overcast li
 }
 ```
 
+## Why
+
+Every image API has its own vocabulary. One takes aspect ratios, another takes
+pixel dimensions. One calls a quality level `high`, another calls it `hd`. One
+wants your source image inline, another wants a URL you have to upload first.
+
+mediagen puts one request shape in front of all of them — and refuses to
+pretend they are more alike than they are. If a model cannot produce the shape
+you asked for, you are told before the request is sent, with the shapes it can
+produce. Nothing is silently substituted.
+
+## Features
+
+- **Images and video**, text-to-media and media-to-media, across Gemini, OpenAI
+  and Kie AI.
+- **Capability checks that happen first.** An unsupported aspect ratio, size or
+  duration is refused before any network call, naming what the model supports.
+- **Model choice that explains itself.** `mediagen models` shows what each
+  provider would use right now and whether that came from your request, your
+  configuration, or the provider's default.
+- **Configuration you can debug.** Settings resolve from the environment, then
+  `.env`, then a config file — and every value reports which layer answered.
+- **Keys handled properly.** Never a command argument. Read from a hidden
+  prompt or stdin, verified against the live API before being stored, masked
+  whenever displayed.
+- **AI content marking.** IPTC/XMP `DigitalSourceType` for machines, a
+  composited label for people — two independent switches, matching the two
+  duties the EU AI Act sets.
+- **Built for scripts.** `--json` puts exactly one object on stdout and nothing
+  else. Stable exit codes. Every error carries a code and an actionable hint.
+
 ## Providers
 
-| Provider          | Images                        | Video | Editing | Key check                        |
-| ----------------- | ----------------------------- | ----- | ------- | -------------------------------- |
-| **Google Gemini** | Nano Banana family, up to 4K  | yes   | yes     | live probe                       |
-| **OpenAI**        | gpt-image family, DALL·E      | —     | yes     | live probe                       |
-| **Kie AI**        | ~30 models: Flux, Imagen, ... | —     | most    | no cheap probe; reported as such |
+| Provider          | Images                         | Video | Editing | Key verification                 |
+| ----------------- | ------------------------------ | ----- | ------- | -------------------------------- |
+| **Google Gemini** | Nano Banana family, up to 4K   | yes   | yes     | live probe                       |
+| **OpenAI**        | gpt-image family, DALL·E       | —     | yes     | live probe                       |
+| **Kie AI**        | ~30 models: Flux, Imagen, Grok | —     | most    | no cheap probe; reported as such |
 
-Gemini offers the widest range of shapes — 14 aspect ratios including 21:9 and
-8:1. OpenAI takes pixel dimensions rather than ratios and genuinely cannot do
-16:9; asking for one is refused by name rather than quietly served as 3:2. Kie
-aggregates other vendors' models, and its catalogue is generated from Kie's own
-documentation rather than maintained by hand.
+Gemini has the widest range of shapes — 14 aspect ratios including 21:9 and
+8:1. Kie aggregates other vendors' models, with a catalogue generated from
+Kie's own documentation rather than maintained by hand.
 
-## What it does
+> [!NOTE]
+> OpenAI takes pixel dimensions rather than aspect ratios, and genuinely cannot
+> produce 16:9 — its widest image is 1536×1024, which is 3:2. Asking for 16:9 is
+> refused by name rather than quietly served as something else. For anything
+> wider than 3:2, use Gemini.
 
-**Generation and editing.** Text to image, image to image, text to video, image
-to video. Aspect ratio, resolution, duration and quality preset where the model
-supports them.
-
-**Honest capability checks.** A shape a model cannot produce is refused _before
-the request is sent_, naming what it does support. Nothing is silently
-substituted — asking for 21:9 and receiving 1:1 without being told is a lie the
-tool will not tell.
-
-**Model choice that explains itself.** `mediagen models` shows which model each
-provider would use right now and where that choice came from — the request,
-your configuration, or the provider's default. A model absent from the listing
-is still sent to the provider, so a newly released one works immediately.
-
-**Configuration you can debug.** Settings resolve from the environment, then
-`.env`, then a per-machine config file, and every lookup reports which layer
-answered. A stale environment variable shadowing the key you just set is the
-most expensive failure this kind of tool has, and `mediagen config list` says
-so out loud.
-
-**Keys handled properly.** Never accepted as a command argument, where they
-would land in shell history and the process list. Read from a hidden prompt or
-from stdin, verified with one live request before being stored, and masked
-whenever shown.
-
-**AI content marking.** Two independent switches, matching the two duties the
-EU AI Act sets: `--mark` writes the IPTC/XMP `DigitalSourceType` that platforms
-read, and `--visible-label` composites a disclosure people can see. Existing
-provider metadata is never overwritten.
-
-**Long jobs handled.** Video takes minutes. Asynchronous providers are polled
-with backoff and a real timeout, with progress on stderr — never on stdout,
-which belongs to the output contract.
-
-## Installing
+## Installation
 
 ```bash
 npm install -g mediagen
 ```
 
-Or skip installing entirely — `npx -y mediagen <command>` works the same way
-and runs an existing install if there is one.
-
-Node 20.11 or later.
+Or skip installing — `npx -y mediagen <command>` behaves identically and uses
+an existing install if there is one. Requires Node 20.11 or later.
 
 ## Getting started
 
@@ -90,26 +91,31 @@ Node 20.11 or later.
 mediagen init
 ```
 
-An interactive wizard: choose providers, enter each key without it being
-echoed, verify each one against the live API, and pick a default. It writes a
-single config file with owner-only permissions.
+An interactive wizard: pick providers, enter each key without it being echoed,
+verify each against the live API, choose a default. It writes one config file
+with owner-only permissions.
 
-For scripts and CI, where there is no terminal:
+For CI and scripts, where there is no terminal:
 
 ```bash
 echo "$GEMINI_API_KEY" | mediagen config set gemini --stdin
 ```
 
-Then check everything is working:
+Then confirm it works:
 
 ```bash
 mediagen doctor
 ```
 
-It reports, per provider, whether a key is configured, which layer it came
-from, and whether the provider actually accepts it — keeping "not configured",
-"rejected", "unreachable" and "no cheap way to check" distinct, because they
+`doctor` reports, per provider, whether a key is configured, which layer it
+came from, and whether the provider accepts it — keeping _not configured_,
+_rejected_, _unreachable_ and _no cheap way to check_ distinct, because they
 call for four different fixes.
+
+> [!WARNING]
+> There is deliberately no flag that takes an API key as an argument. Arguments
+> land in shell history and in the process list, where they outlive the command
+> that used them.
 
 ## Usage
 
@@ -133,18 +139,23 @@ mediagen mark ./photo.png --visible-label
 | `--size <size>`          | `1K`, `2K`, `4K`                     |
 | `--duration <seconds>`   | video only                           |
 | `--output-name <name>`   | the extension may select the format  |
-| `--output-dir <dir>`     |                                      |
+| `--output-dir <dir>`     | where to save                        |
 | `--quality <preset>`     | `fast`, `balanced`, `quality`        |
 | `--mark`                 | machine-readable AI-generated marker |
 | `--visible-label`        | visible AI disclosure composited in  |
 | `--json`                 | exactly one JSON object on stdout    |
 | `--verbose` `--quiet`    | diagnostics on stderr                |
 
+> [!TIP]
+> The prompt is sent exactly as written — mediagen does not rewrite it. Being
+> specific about subject, composition, light, camera or medium, materials and
+> atmosphere does far more for the result than any flag here.
+
 ### Scripting
 
 With `--json`, stdout carries **exactly one JSON object and nothing else**.
-Without it, the saved path is the **last line**, and a failure writes nothing
-to stdout at all — so reading the last line can never hand you an error message
+Without it, the saved path is the **last line**, and a failure writes nothing to
+stdout at all — so reading the last line can never hand you an error message
 where you expected a path.
 
 | Exit code | Meaning                          |
@@ -154,7 +165,7 @@ where you expected a path.
 | `3`       | configuration or credentials     |
 | `4`       | generation, network, or file I/O |
 
-Failures carry a machine-readable code and an actionable hint:
+Failures carry a machine-readable code and a next action:
 
 ```json
 {
@@ -164,6 +175,9 @@ Failures carry a machine-readable code and an actionable hint:
   "hint": "Run: mediagen config set gemini — get a key at https://aistudio.google.com/apikey"
 }
 ```
+
+Codes are `VALIDATION_ERROR`, `CONFIG_ERROR`, `API_ERROR`, `NETWORK_ERROR`,
+`FILE_ERROR`, `CONTENT_BLOCKED` and `TIMEOUT`.
 
 ## Configuration
 
@@ -187,7 +201,12 @@ mediagen config path        # where the file lives
 mediagen config unset kie   # remove one value from the file
 ```
 
-## As an MCP server
+> [!TIP]
+> A stale environment variable shadowing the key you just configured is the most
+> expensive failure this kind of tool has. `mediagen config list` marks every
+> shadowed value, so you can see it instead of guessing.
+
+## MCP server
 
 ```json
 {
@@ -201,12 +220,11 @@ mediagen config unset kie   # remove one value from the file
 }
 ```
 
-`env` can be omitted if you have run `mediagen init` — the server reads the
-same configuration the CLI does.
+Three tools: `generate_media`, `list_models` and `check_configuration`. `env`
+can be omitted once `mediagen init` has run — the server reads the same
+configuration the CLI does.
 
-Three tools: `generate_media`, `list_models`, and `check_configuration`.
-
-## As an agent skill
+## Agent skill
 
 ```bash
 npx skills add Cripacx/mediagen --skill mediagen
@@ -217,109 +235,29 @@ provider suits which task, how to read the JSON contract, and — importantly �
 to tell you to run `mediagen init` rather than ever asking you to paste an API
 key into a chat.
 
-The skill installs no CLI, so it invokes `npx -y mediagen`, which needs none.
+The skill installs no CLI of its own, so it invokes `npx -y mediagen`, which
+needs none.
+
+## Content marking
+
+The EU AI Act splits disclosure into two duties, so mediagen has two
+independent switches:
+
+| Flag              | Duty                     | What it does                                           |
+| ----------------- | ------------------------ | ------------------------------------------------------ |
+| `--mark`          | make it machine-readable | writes IPTC/XMP `DigitalSourceType`, changes no pixels |
+| `--visible-label` | disclose it to people    | composites a visible label into the image              |
+
+Both default to off. `mediagen mark <file…>` applies them to media that already
+exists.
+
+> [!NOTE]
+> No C2PA manifest is written. A manifest only carries provenance if it is
+> signed, signing needs a certificate you do not have, and a test-signed
+> manifest would look like provenance while carrying none. Marking video is not
+> supported yet and is refused by name rather than silently skipped.
 
 ## Development
 
-```bash
-npm install
-npm run verify   # typecheck, lint, format, cycles, tests
-```
-
-`npm test` builds first: the output-contract tests run the real `dist/bin.js`,
-because an in-process test can pass while the shipped binary writes a stray
-line to stdout.
-
-Tests never read your config file or inherit your API keys — `test/setup.ts`
-enforces that, and a test fails if that enforcement is ever removed.
-
-### Adding a provider
-
-Add one directory under `src/providers/` with a manifest, and one line in
-`src/providers/registry.ts`. The manifest holds only data and validation, and
-reaches its client through a lazy factory, so `doctor` and `config` never load
-a vendor SDK. Everything else — capability checks, model resolution, output
-handling, marking — is shared and needs no edit.
-
-### The Kie catalogue
-
-Kie's model table is generated from Kie's own documentation:
-
-```bash
-npm run sync:kie-models
-```
-
-`npm run check:kie-models` reports drift and runs on a schedule rather than in
-CI, so no pull request depends on a third-party site being up.
-
-### Notes in the code
-
-Comments cite section numbers such as `§6.3`. Those refer to the written
-specification this was implemented from, which is no longer in the tree; it
-remains in git history at the first commit if you want the original wording.
-The comments themselves state the reasoning, so nothing depends on having it.
-
-Two deliberate departures from that specification are worth knowing about:
-
-- **Prompts are sent exactly as written.** The specification had the tool
-  expand a short prompt with a second model call. That is redundant when an
-  agent is driving it, so the prompt-writing guidance lives in the skill
-  instead. The cost: typing `mediagen image "a cat"` straight into a shell
-  gives you exactly that prompt.
-- **`mediagen` with no arguments prints help**, rather than starting the MCP
-  server. `mediagen mcp` starts it. Hosts spawn whatever their configuration
-  names, so nothing needed the zero-argument form, and it made every script and
-  agent shell that ran the bare command hang.
-
-## Releasing
-
-**Actions → Release → Run workflow**, with `patch`, `minor`, `major`, or an
-exact version. Tick **dry run** first to see what would happen without
-publishing anything.
-
-Manual on purpose: npm unpublish is restricted to a short window and the MCP
-registry has no delete, so a release is a decision rather than something a
-merge makes on your behalf.
-
-The workflow verifies, bumps the version in `package.json` and `server.json`
-together, commits, tags, publishes to npm, publishes to the MCP registry, and
-creates the GitHub Release last — so a release never points at something that
-does not exist yet.
-
-Neither destination stores a secret: npm trusted publishing and
-`mcp-publisher login github-oidc` both authenticate over GitHub OIDC, and npm
-attaches provenance automatically.
-
-Release notes come from pull requests merged since the last tag, grouped by the
-labels in [.github/release.yml](.github/release.yml). Work pushed straight to
-`main` appears only in the compare link, so merge through pull requests if you
-want them to read well.
-
-### Cutting a version by hand
-
-```bash
-node scripts/set-version.mjs patch
-```
-
-```bash
-npm run verify
-```
-
-```bash
-npm publish --access public
-```
-
-`node scripts/set-version.mjs --check` fails if the version fields ever drift
-apart, and `npm test` checks the same thing.
-
-## Status
-
-Every provider integration is written against vendor documentation and SDK type
-declarations. The paths around generation are covered by tests — configuration,
-capability validation, polling states, file handling, marking against real
-images, the MCP server over real stdio — but a live generation is the thing a
-real API key confirms.
-
-## Licence
-
-MIT
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, how to add a
+provider, and how releases are cut.

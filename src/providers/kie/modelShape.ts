@@ -6,8 +6,8 @@
  *
  * Every list is of plain strings rather than a closed union. The generator
  * reads Kie's own documentation, and a vendor that adds an aspect ratio must
- * not turn a regenerated table into a compile error — §7.3's dangerous
- * direction is upward.
+ * not turn a regenerated table into a compile error — the dangerous direction
+ * for a stale table is upward.
  */
 
 export interface KieModelShape {
@@ -20,7 +20,7 @@ export interface KieModelShape {
   readonly imageToImage?: string
   /**
    * Request field carrying input image URLs. Kie names it differently per
-   * model, which is the main reason these descriptors exist at all (§6.4).
+   * model, which is the main reason these descriptors exist at all.
    */
   readonly imageInputField?: string
   /**

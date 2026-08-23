@@ -1,7 +1,7 @@
 /**
  * `mediagen image` and `mediagen video`.
  *
- * Spec §2.1 — kind is a dimension, not a fork. Both subcommands are built by
+ * Kind is a dimension, not a fork. Both subcommands are built by
  * this one function with a different `kind`, so an option cannot exist for
  * images and quietly not for video.
  */

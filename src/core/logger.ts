@@ -1,7 +1,7 @@
 /**
  * Diagnostics, which always go to stderr.
  *
- * Spec §4.2 gives stdout to the output contract alone: in `--json` mode it
+ * Stdout belongs to the output contract alone: in `--json` mode it
  * carries exactly one object and nothing else, and in human mode the saved
  * path must be the last line. Any log written to stdout breaks both. Routing
  * every log through this module makes that a property of one file rather than

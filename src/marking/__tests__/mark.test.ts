@@ -1,7 +1,7 @@
 /**
- * AI content marking (§9, §12.1).
+ * AI content marking.
  *
- * The tests §12.1 names are all here: the metadata is written, provider
+ * The three that matter are all here: the metadata is written, provider
  * metadata survives, and a second pass does not double-mark.
  */
 
@@ -40,7 +40,7 @@ async function xmpOf(filePath: string): Promise<string | undefined> {
   return metadata.xmp?.toString('utf-8')
 }
 
-describe('the machine-readable marker (§9)', () => {
+describe('the machine-readable marker', () => {
   it('writes the IPTC DigitalSourceType', async () => {
     const file = await makePng()
 
@@ -63,7 +63,7 @@ describe('the machine-readable marker (§9)', () => {
     expect(xmp).toContain('gemini-3-pro-image')
   })
 
-  it('does not double-mark on a second pass (§12.1)', async () => {
+  it('does not double-mark on a second pass', async () => {
     const file = await makePng()
 
     await markFile(file, { machineReadable: true, visibleLabel: false })
@@ -78,7 +78,7 @@ describe('the machine-readable marker (§9)', () => {
     expect(occurrences).toBe(2)
   })
 
-  it('leaves an existing declaration alone rather than overwriting it (§9)', async () => {
+  it('leaves an existing declaration alone rather than overwriting it', async () => {
     const file = await makePng()
     const foreign =
       '<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:Iptc4xmpExt="http://iptc.org/std/Iptc4xmpExt/2008-02-29/"><Iptc4xmpExt:DigitalSourceType>http://cv.iptc.org/newscodes/digitalsourcetype/digitalCapture</Iptc4xmpExt:DigitalSourceType></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>'
@@ -92,7 +92,7 @@ describe('the machine-readable marker (§9)', () => {
     expect(await xmpOf(file)).toContain('digitalCapture')
   })
 
-  it('adds to existing metadata rather than replacing it (§9)', async () => {
+  it('adds to existing metadata rather than replacing it', async () => {
     const file = await makePng()
     const foreign =
       '<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:creator>Someone Else</dc:creator></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>'
@@ -106,7 +106,7 @@ describe('the machine-readable marker (§9)', () => {
     expect(xmp).toContain(TRAINED_ALGORITHMIC_MEDIA)
   })
 
-  it('writes no C2PA manifest (§9)', async () => {
+  it('writes no C2PA manifest', async () => {
     const file = await makePng()
 
     await markFile(file, { machineReadable: true, visibleLabel: false })
@@ -118,7 +118,7 @@ describe('the machine-readable marker (§9)', () => {
   })
 })
 
-describe('the visible label (§9)', () => {
+describe('the visible label', () => {
   it('changes the pixels', async () => {
     const file = await makePng()
     const before = await sharp(file).raw().toBuffer()

@@ -1,7 +1,7 @@
 /**
  * Deciding what a byte stream actually is.
  *
- * Spec §8 requires the requested file extension to be reconciled with the
+ * The requested file extension has to be reconciled with the
  * real media type and corrected when they disagree — and the correction to be
  * logged rather than done silently. That needs one place that can name a type
  * from its bytes, because a provider's declared MIME type is a claim, not a

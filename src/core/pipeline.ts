@@ -1,14 +1,14 @@
 /**
  * The one pipeline.
  *
- * Spec §1.2 — the CLI and the MCP server are thin adapters over this: they
+ * The CLI and the MCP server are thin adapters over this: they
  * translate input and format output and do nothing else. A behaviour that
  * exists in one and not the other is a defect, and the only way to keep that
  * true is for neither of them to contain any behaviour at all.
  *
- * The order of the steps below is load-bearing. §6.3 requires capability
- * validation to happen before any network call, and §3.3 requires credentials
- * to be checked when a provider is actually used rather than eagerly. Both are
+ * The order of the steps below is load-bearing. Capability validation has to
+ * happen before any network call, and credentials have to be checked when a
+ * provider is actually used rather than eagerly. Both are
  * satisfied by validating shape first, resolving the key second, and only then
  * loading a client.
  */
@@ -29,7 +29,7 @@ export interface PipelineOptions {
   readonly now?: () => Date
 }
 
-/** How a model was chosen, for `mediagen models` and for diagnostics (§7.2). */
+/** How a model was chosen, for `mediagen models` and for diagnostics. */
 export type ModelSource = 'request' | 'configuration' | 'provider default'
 
 export interface ResolvedModel {
@@ -38,7 +38,7 @@ export interface ResolvedModel {
 }
 
 /**
- * Spec §7.1 — provider-neutral, and in this order: what the request asked for,
+ * Provider-neutral, and in this order: what the request asked for,
  * what is configured for that provider, then the provider's own default.
  */
 export function resolveModel(
@@ -72,10 +72,10 @@ export async function generate(
   const { model, source } = resolveModel(request, provider, config, quality)
   log.debug(`model ${model} (from ${source})`)
 
-  // §6.3 — before anything is sent, and before a key is even needed.
+  // Before anything is sent, and before a key is even needed.
   provider.validate(request, model)
 
-  // §3.3 — validated here, where the provider is actually used.
+  // Validated here, where the provider is actually used.
   const apiKey = requireApiKey(config, provider)
 
   const client = await loadGenerationClient(provider, request.kind)
@@ -96,7 +96,7 @@ export async function generate(
     log,
   })
 
-  // §9 — marking happens after the file exists and before the path is
+  // Marking happens after the file exists and before the path is
   // reported, so a caller that reads the path always gets a marked file.
   // Both switches default to off.
   if (request.mark === true || request.visibleLabel === true) {
@@ -117,8 +117,8 @@ export async function generate(
     provider: provider.id,
     model,
     mimeType: saved.mimeType,
-    // §2.3 — present only where the provider rewrote the prompt itself. This
-    // tool no longer rewrites prompts; see the note on §5 in the README.
+    // Present only where the provider rewrote the prompt itself. This
+    // tool no longer rewrites prompts; see the note in the README.
     ...(media.revisedPrompt === undefined ? {} : { revisedPrompt: media.revisedPrompt }),
     ...(media.requestId === undefined ? {} : { requestId: media.requestId }),
   }

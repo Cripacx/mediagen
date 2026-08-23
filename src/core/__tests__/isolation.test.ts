@@ -1,5 +1,5 @@
 /**
- * Guards the test harness itself (§12.1).
+ * Guards the test harness itself.
  *
  * These tests deliberately do not set up their own isolation: they assert that
  * `test/setup.ts` did it, so removing that file fails the suite loudly instead

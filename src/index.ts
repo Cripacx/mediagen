@@ -2,7 +2,7 @@
  * Library entry point.
  *
  * The CLI (`src/cli`) and the MCP server (`src/mcp`) are adapters over this
- * surface; per §1.2 they translate input and format output and do nothing
+ * surface; they translate input and format output and do nothing
  * else, so anything either of them can do is reachable from here.
  */
 

@@ -1,5 +1,5 @@
 /**
- * `mediagen models` (§7.2).
+ * `mediagen models`.
  *
  * Three things per provider: the model a request would use *right now*, where
  * that choice came from, and what is listed. The middle one is the reason this
@@ -7,7 +7,7 @@
  * single aggregator, "which model did I just use, and why" stops being
  * answerable from memory.
  *
- * The listing is not a menu of the only valid choices (§7.3). An id absent
+ * The listing is not a menu of the only valid choices. An id absent
  * from it is still sent to the provider.
  */
 

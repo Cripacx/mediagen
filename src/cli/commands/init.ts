@@ -1,8 +1,8 @@
 /**
- * `mediagen init` — guided setup (§4.6).
+ * `mediagen init` — guided setup.
  *
  * Refuses to run without a TTY. Without one the key cannot be read without
- * echoing it, and §3.5 does not allow reading a secret in the clear just
+ * echoing it, and reading a secret in the clear is not worth doing just
  * because it would be convenient — so this points at the `--stdin` path
  * instead of quietly degrading.
  */
@@ -97,7 +97,7 @@ async function wizard(): Promise<ExitCode> {
       continue
     }
 
-    // §4.6 — each key is verified with a live request as it is entered, so a
+    // Each key is verified with a live request as it is entered, so a
     // typo is caught here rather than during the first real generation.
     writeDiagnostic(`Verifying…`)
     const verification = await verifyKey(provider, key)

@@ -1,20 +1,20 @@
 /**
  * The error taxonomy every frontend renders.
  *
- * Spec §6.5 requires provider errors to be mapped onto a small, stable set
+ * Provider errors are mapped onto a small, stable set
  * before they reach a frontend, so that neither the CLI nor the MCP server
- * ever parses a vendor error string. Spec §4.3 requires the exit code to be
+ * ever parses a vendor error string. The exit code has to be
  * derivable without parsing text, so the code-to-exit mapping lives here and
  * nowhere else.
  *
  * Errors travel as exceptions inside the pipeline and are converted to a
  * result object at the frontend boundary. Threading a result type through
- * every stage would buy nothing that §4.2 does not already get from one
+ * every stage would buy nothing that the output contract does not already get from one
  * conversion at the edge.
  */
 
 /**
- * Spec §4.3. Callers branch on these, so the mapping is stable.
+ * Callers branch on these, so the mapping is stable.
  */
 export const EXIT_CODE = {
   SUCCESS: 0,
@@ -29,9 +29,9 @@ export const EXIT_CODE = {
 export type ExitCode = (typeof EXIT_CODE)[keyof typeof EXIT_CODE]
 
 /**
- * Spec §6.5 — invalid input, configuration, upstream API failure, network
+ * Invalid input, configuration, upstream API failure, network
  * failure, file operation. `CONTENT_BLOCKED` and `TIMEOUT` are split out
- * because §6.2 requires a content block not to read as a network error, and a
+ * because a content block must not read as a network error, and a
  * polling timeout not to read as an upstream failure.
  */
 export const ERROR_CODE = {
@@ -63,7 +63,7 @@ export function exitCodeFor(code: ErrorCode): ExitCode {
 /**
  * Every failure the tool reports deliberately.
  *
- * `hint` names a concrete next action. Spec §4.2: an error that says only what
+ * `hint` names a concrete next action: an error that says only what
  * went wrong is half an error — so anything constructed without a hint should
  * be a case where genuinely no action exists.
  */
@@ -91,7 +91,7 @@ export function isMediagenError(value: unknown): value is MediagenError {
 /**
  * Last line of defence for anything thrown that was not already mapped.
  *
- * The raw message is deliberately dropped rather than forwarded: §6.5 requires
+ * The raw message is deliberately dropped rather than forwarded, because
  * that an upstream message never reaches the user unredacted, because it may
  * echo the prompt or fragments of a key. The original is kept as `cause` for
  * stderr diagnostics, which are not part of the output contract.

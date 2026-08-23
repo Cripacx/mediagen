@@ -1,7 +1,7 @@
 /**
  * Layered configuration resolution with provenance.
  *
- * Spec §3.1 — three layers, because they have three different lifetimes:
+ * Three layers, because they have three different lifetimes:
  * the process environment is per invocation and what CI sets, `.env` is per
  * project, and the config file is per machine. Earlier layers win.
  *
@@ -16,7 +16,7 @@ import { parseEnv } from 'node:util'
 import type { ConfigFile, ConfigLayer, Resolved } from '../types/config.js'
 import { readConfigFile } from './file.js'
 
-/** How each layer is named when shown to a person (§4.4). */
+/** How each layer is named when shown to a person. */
 export const LAYER_LABEL: Record<ConfigLayer, string> = {
   environment: 'env',
   dotenv: '.env',
@@ -99,7 +99,7 @@ export function fromDefault<T>(value: T): Resolved<T> {
   return { value, layer: 'default', shadowed: [] }
 }
 
-/** Masks a secret for display: enough to recognise, not enough to use (§3.5). */
+/** Masks a secret for display: enough to recognise, not enough to use. */
 export function maskSecret(value: string): string {
   if (value.length <= 8) return '*'.repeat(value.length)
   return `${value.slice(0, 4)}…${value.slice(-2)}`

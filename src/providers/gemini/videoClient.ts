@@ -1,13 +1,13 @@
 /**
- * Gemini video generation, over the Interactions API (§10).
+ * Gemini video generation, over the Interactions API.
  *
  * Video is the second media kind, not a second product: this file is short
  * because the pipeline, capability validation, output handling and the polling
  * loop are all the same ones images use. What genuinely differs:
  *
- * - **It is asynchronous.** Generation takes minutes, so §6.2's polling loop
+ * - **It is asynchronous.** Generation takes minutes, so the shared polling loop
  *   is the normal path here, and progress goes to stderr — never stdout,
- *   which belongs to the output contract (§4.2).
+ *   which belongs to the output contract.
  * - **Delivery differs by size.** Google returns a video inline as base64 only
  *   when it is small; above roughly 4 MB it returns a URI to download.
  *   Requesting `uri` delivery outright avoids carrying a large clip through
@@ -23,8 +23,8 @@ import { createGenAI, mapGeminiError } from './client.js'
 import type { GenerationClient, GenerationClientFactory, Logger } from '../../types/provider.js'
 
 /**
- * A video is orders of magnitude larger than a still, so §10 asks for the
- * bounds to be revisited rather than inherited. This is the download bound;
+ * A video is orders of magnitude larger than a still, so the bounds are
+ * revisited here rather than inherited. This is the download bound;
  * `saveMedia` applies its own before writing.
  */
 const MAX_VIDEO_BYTES = 512 * 1024 * 1024
@@ -47,7 +47,7 @@ export const createVideoClient: GenerationClientFactory = (): GenerationClient =
 
     const input: InputPart[] = [{ type: 'text', text: request.prompt }]
 
-    // §10: for image-to-video the source frame is supplied exactly as it is
+    // For image-to-video the source frame is supplied exactly as it is
     // for an image edit — inline, in the same input array.
     if (request.inputMedia !== undefined) {
       const source = await loadInputMedia(request.inputMedia)
@@ -108,7 +108,7 @@ export const createVideoClient: GenerationClientFactory = (): GenerationClient =
 /**
  * Waits for the interaction to reach a terminal state.
  *
- * A create call that already came back complete is not polled at all — §6.2's
+ * A create call that already came back complete is not polled at all:
  * "finished is finished" applies to a job that finished immediately just as
  * much as to one that failed.
  */
@@ -139,7 +139,7 @@ async function waitForCompletion(
 
       const status = statusOf(current)
 
-      // §6.2: terminal states are distinguished. A cancellation is not a
+      // Terminal states are distinguished. A cancellation is not a
       // provider failure, and telling the user to retry a job they stopped
       // would be nonsense.
       if (status === 'cancelled') {
@@ -214,7 +214,7 @@ function idOf(interaction: unknown): string | undefined {
 
 /**
  * The download URI is on Google's own API host and needs the key, so this
- * cannot be a bare fetch (§8: the bound is checked before the body is read).
+ * cannot be a bare fetch. The bound is checked before the body is read.
  */
 async function download(
   uri: string,

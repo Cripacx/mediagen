@@ -1,7 +1,7 @@
 /**
  * Reading a secret without echoing it.
  *
- * Spec §3.5 — two paths only: an interactive hidden prompt, or stdin for
+ * Two paths only: an interactive hidden prompt, or stdin for
  * scripting (the `docker login --password-stdin` pattern). There is
  * deliberately no flag that takes a key as an argument, because arguments land
  * in shell history and in the process list.

@@ -1,7 +1,7 @@
 /**
  * The `openai` client and its error mapping.
  *
- * Kept out of the manifest (§6.1) so `doctor` and `config` never load the SDK.
+ * Kept out of the manifest so `doctor` and `config` never load the SDK.
  */
 
 import OpenAI from 'openai'
@@ -13,7 +13,7 @@ export function createOpenAI(apiKey: string): OpenAI {
 }
 
 /**
- * Spec §6.5. The upstream message is never forwarded: OpenAI's 400s quote the
+ * The upstream message is never forwarded: OpenAI's 400s quote the
  * prompt back, and its moderation refusals quote it in full.
  *
  * An error with no status is a transport failure rather than a rejection, and

@@ -1,5 +1,5 @@
 /**
- * The shared polling loop (§6.2).
+ * The shared polling loop.
  */
 
 import { describe, expect, it, vi } from 'vitest'
@@ -44,7 +44,7 @@ describe('completion', () => {
   })
 })
 
-describe('terminal failures (§6.2)', () => {
+describe('terminal failures', () => {
   it('does not keep polling a job that already failed', async () => {
     // Finished-and-failed is still finished. Continuing would spend the whole
     // timeout waiting for a result that will never arrive.
@@ -67,7 +67,7 @@ describe('terminal failures (§6.2)', () => {
   })
 })
 
-describe('the timeout (§6.2)', () => {
+describe('the timeout', () => {
   it('gives up with a clear error rather than hanging', async () => {
     const check = vi
       .fn<() => Promise<PollOutcome<string>>>()
@@ -118,7 +118,7 @@ describe('backoff', () => {
   })
 })
 
-describe('cancellation (§6.2)', () => {
+describe('cancellation', () => {
   it('stops when the caller aborts', async () => {
     const controller = new AbortController()
     const check = vi.fn((): Promise<PollOutcome<string>> => {
@@ -141,7 +141,7 @@ describe('cancellation (§6.2)', () => {
   })
 })
 
-describe('progress (§10)', () => {
+describe('progress', () => {
   it('reports progress to the logger, which writes to stderr', async () => {
     const { log, progress } = recordingLogger()
     const check = vi

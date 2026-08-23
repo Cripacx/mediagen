@@ -1,6 +1,6 @@
 /**
  * `mediagen doctor` — what is configured, where it came from, and whether it
- * works (§4.5).
+ * works.
  *
  * The four outcomes are kept distinct on purpose. "Not configured", "key
  * rejected", "unreachable" and "configured but not cheaply verifiable" call

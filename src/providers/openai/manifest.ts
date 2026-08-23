@@ -1,9 +1,9 @@
 /**
  * OpenAI.
  *
- * Spec §6.1 — pure data and validation only; the SDK is reached through the
+ * Pure data and validation only; the SDK is reached through the
  * lazy factories below. Adding this provider touched exactly one other file,
- * the registry's manifest list, which is the acceptance criterion §6.1 sets.
+ * the registry's manifest list, which is the whole acceptance criterion.
  */
 
 import { findModel, validateAgainst } from '../../core/capabilities.js'

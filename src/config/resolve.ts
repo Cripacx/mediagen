@@ -1,7 +1,7 @@
 /**
  * Turning the three layers into the settings a run actually uses.
  *
- * Spec §3.3 is the reason this is lazy rather than eager. A request may name
+ * This is lazy rather than eager for one reason. A request may name
  * any provider, so credentials cannot be validated up front against one
  * configured provider: the tool must start if *at least one* provider is
  * usable, and validate a provider's key at the moment that provider is used.
@@ -17,14 +17,14 @@ import type { Resolved, ResolvedConfig } from '../types/config.js'
 import type { QualityPreset } from '../types/media.js'
 import type { ProviderManifest } from '../types/provider.js'
 
-/** Spec §3.2. Kept together so the set of settings is visible at a glance. */
+/** Kept together so the set of settings is visible at a glance. */
 export const ENV_VARS = {
   provider: 'MEDIAGEN_PROVIDER',
   outputDir: 'MEDIAGEN_OUTPUT_DIR',
   quality: 'MEDIAGEN_QUALITY',
 } as const
 
-/** Spec §3.2 — `<PROVIDER>_MODEL`, derived so a new provider needs no edit here. */
+/** `<PROVIDER>_MODEL`, derived so a new provider needs no edit here. */
 export function modelEnvVar(providerId: string): string {
   return `${providerId.toUpperCase()}_MODEL`
 }
@@ -61,7 +61,7 @@ export function loadConfig(layers: ConfigLayers = loadConfigLayers()): ResolvedC
 }
 
 /**
- * Spec §3.3 — validated when the provider is actually used, with an error
+ * Validated when the provider is actually used, with an error
  * naming the exact variable and the exact command that fixes it.
  */
 export function requireApiKey(config: ResolvedConfig, provider: ProviderManifest): string {
@@ -90,7 +90,7 @@ export function requireApiKey(config: ResolvedConfig, provider: ProviderManifest
 }
 
 /**
- * Spec §3.3 — the tool must run if at least one provider is usable, and when
+ * The tool must run if at least one provider is usable, and when
  * none is, report the configured default provider's own error.
  */
 export function assertSomeProviderUsable(config: ResolvedConfig): void {

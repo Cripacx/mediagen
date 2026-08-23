@@ -2,7 +2,7 @@
  * The cheapest authenticated request Google offers.
  *
  * A one-token text interaction is used rather than an image generation, so
- * verifying a key costs effectively nothing (§3.5, §4.5).
+ * verifying a key costs effectively nothing.
  */
 
 import { createGenAI, mapGeminiError } from './client.js'

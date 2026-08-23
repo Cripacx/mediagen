@@ -1,5 +1,5 @@
 /**
- * OpenAI's size vocabulary (§6.3, §7.1).
+ * OpenAI's size vocabulary.
  *
  * OpenAI takes pixel dimensions where every other provider here takes an
  * aspect ratio, so this is the one provider whose catalogue has to make a
@@ -48,13 +48,13 @@ describe('every listed ratio is the ratio its size actually is', () => {
 
   it('does not claim 16:9, which OpenAI cannot produce', () => {
     // Its widest images are 3:2 and 7:4. Listing 16:9 and quietly serving 3:2
-    // is precisely the substitution §6.3 forbids.
+    // is precisely the substitution capability validation forbids.
     for (const model of OPENAI_IMAGE_MODELS) {
       expect(model.aspectRatios, model.id).not.toContain('16:9')
     }
   })
 
-  it('rejects 16:9 by name, listing what the model can do (§6.3)', () => {
+  it('rejects 16:9 by name, listing what the model can do', () => {
     const model = findModel(OPENAI_IMAGE_MODELS, 'gpt-image-2')
 
     expect(() => {
@@ -69,12 +69,12 @@ describe('size table selection', () => {
     expect(sizeTableFor('gpt-image-2')).toBe(GPT_IMAGE_SIZES)
   })
 
-  it('gives an unlisted model the modern table rather than failing (§7.3)', () => {
+  it('gives an unlisted model the modern table rather than failing', () => {
     expect(sizeTableFor('gpt-image-9-future')).toBe(GPT_IMAGE_SIZES)
   })
 })
 
-describe('quality vocabulary stays inside the provider (§7.1)', () => {
+describe('quality vocabulary stays inside the provider', () => {
   it('translates the shared preset into each family’s own words', () => {
     expect(apiQuality('gpt-image-2', 'fast')).toBe('low')
     expect(apiQuality('gpt-image-2', 'quality')).toBe('high')

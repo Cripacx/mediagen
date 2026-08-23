@@ -1,5 +1,5 @@
 /**
- * `mediagen models` (§7.2), through the built binary.
+ * `mediagen models`, through the built binary.
  */
 
 import { execFile } from 'node:child_process'
@@ -21,7 +21,7 @@ async function mediagen(args: string[]): Promise<{ code: number; stdout: string;
   }
 }
 
-describe('models (§7.2)', () => {
+describe('models', () => {
   it('reports the model a request would use and where the choice came from', async () => {
     const { code, stdout } = await mediagen(['models'])
 
@@ -37,7 +37,7 @@ describe('models (§7.2)', () => {
     }
   })
 
-  it('says plainly that the list is not a gate (§7.3)', async () => {
+  it('says plainly that the list is not a gate', async () => {
     const { stdout } = await mediagen(['models'])
 
     expect(stdout).toContain('still sent to the provider')
@@ -61,7 +61,7 @@ describe('models (§7.2)', () => {
     }
   })
 
-  it('honours a configured model and says which layer set it (§7.1, §3.1)', async () => {
+  it('honours a configured model and says which layer set it', async () => {
     const { stdout } = await run(process.execPath, [BIN, 'models', '--provider', 'kie', '--json'], {
       env: { ...process.env, KIE_MODEL: 'flux-2/pro' },
     })

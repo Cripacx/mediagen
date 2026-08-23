@@ -2,8 +2,8 @@
  * OpenAI image generation and editing.
  *
  * Two shapes rather than one: OpenAI splits generation and editing across
- * `images.generate` and `images.edit`, with different parameters. §6.4 warns
- * that this varies per provider and must be researched rather than assumed —
+ * `images.generate` and `images.edit`, with different parameters. How a
+ * provider takes input media varies and has to be checked rather than assumed —
  * here the difference is the endpoint itself, not just a field name.
  */
 
@@ -75,9 +75,9 @@ export const createImageClient: GenerationClientFactory = (): GenerationClient =
  *
  * An explicit `--size` wins, because the user named exactly what they wanted.
  * A ratio the table does not hold is not silently approximated: capability
- * validation (§6.3) has already rejected it before this runs, so reaching here
- * with an unknown ratio means the model was unlisted, and §7.3 says to send
- * the request rather than guess.
+ * validation has already rejected it before this runs, so reaching here
+ * with an unknown ratio means the model was unlisted, so the request is sent
+ * rather than guessed at.
  */
 function resolveSize(request: GenerationRequest, model: string): string | undefined {
   if (request.size !== undefined) return request.size

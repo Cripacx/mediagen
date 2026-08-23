@@ -1,7 +1,7 @@
 /**
- * The MCP server (§1.2), driven over a real in-memory transport.
+ * The MCP server, driven over a real in-memory transport.
  *
- * §1.2 says a behaviour present in one frontend and not the other is a defect,
+ * A behaviour present in one frontend and not the other is a defect,
  * so these tests check the same properties the CLI contract tests check:
  * the error taxonomy reaches the caller with its code and hint, and nothing
  * reaches stdout that the protocol did not put there.
@@ -56,9 +56,9 @@ describe('the tool surface', () => {
   })
 })
 
-describe('the same pipeline as the CLI (§1.2)', () => {
-  it('surfaces a configuration failure with its code and hint (§6.5)', async () => {
-    // Nothing is configured in the test environment (§12.1), so this fails on
+describe('the same pipeline as the CLI', () => {
+  it('surfaces a configuration failure with its code and hint', async () => {
+    // Nothing is configured in the test environment, so this fails on
     // credentials rather than reaching a provider.
     const result = (await client.callTool({
       name: 'generate_media',
@@ -70,7 +70,7 @@ describe('the same pipeline as the CLI (§1.2)', () => {
     expect(String(result.structuredContent?.['hint'])).toContain('mediagen config set')
   })
 
-  it('rejects an unsupported shape before any network call (§6.3)', async () => {
+  it('rejects an unsupported shape before any network call', async () => {
     const result = (await client.callTool({
       name: 'generate_media',
       arguments: {
@@ -96,7 +96,7 @@ describe('the same pipeline as the CLI (§1.2)', () => {
   })
 })
 
-describe('list_models (§7.2)', () => {
+describe('list_models', () => {
   it('reports what each provider would use and where that came from', async () => {
     const result = (await client.callTool({
       name: 'list_models',
@@ -117,7 +117,7 @@ describe('list_models (§7.2)', () => {
   })
 })
 
-describe('check_configuration (§11)', () => {
+describe('check_configuration', () => {
   it('never asks the caller for an API key', async () => {
     const result = (await client.callTool({
       name: 'check_configuration',
@@ -126,7 +126,7 @@ describe('check_configuration (§11)', () => {
 
     const text = result.content?.[0]?.text ?? ''
 
-    // §11: on a configuration failure, tell the user to run `mediagen init` —
+    // On a configuration failure, tell the user to run `mediagen init` —
     // never ask them to paste a key into a chat.
     expect(text).toContain('mediagen init')
     expect(text).toMatch(/do not ask them for an API key/i)

@@ -1,5 +1,5 @@
 /**
- * AI content marking (§9).
+ * AI content marking.
  *
  * The EU AI Act splits disclosure into two duties, so this is two independent
  * switches rather than one setting:
@@ -41,7 +41,7 @@ const VISIBLE_LABEL_TEXT = 'AI-generated'
 /**
  * Formats this build can mark.
  *
- * §10 asks for honesty here rather than a promise: XMP in a video container is
+ * Honesty here beats a promise: XMP in a video container is
  * a different operation from XMP in a still, and this build does not do it.
  * A video is refused by name instead of being silently left unmarked, which
  * would leave a caller believing a disclosure duty had been met.
@@ -113,7 +113,7 @@ export async function markFile(
     pipeline = pipeline.composite([{ input: label, gravity: 'southeast' }])
   }
 
-  // §9: a file that already declares a source type is left alone and reported.
+  // A file that already declares a source type is left alone and reported.
   // Overwriting would discard whatever the provider recorded about itself.
   const machineReadableWritten = options.machineReadable && !alreadyMarked
   if (machineReadableWritten) {
@@ -203,7 +203,7 @@ function buildXmpPacket(provenance: MarkingProvenance): string {
 
 /**
  * Adds the marker to an existing packet rather than replacing it, so provider
- * metadata such as model identifiers survives (§9).
+ * metadata such as model identifiers survives.
  */
 function injectIntoXmp(existing: string, provenance: MarkingProvenance): string {
   const descriptionMatch = /<rdf:Description\b[^>]*>/.exec(existing)

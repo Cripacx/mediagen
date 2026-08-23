@@ -19,7 +19,7 @@ function request(overrides: Partial<GenerationRequest> = {}): GenerationRequest 
   return { prompt: 'a cat', kind: 'image', ...overrides }
 }
 
-describe('capability validation (§6.3)', () => {
+describe('capability validation', () => {
   it('names the reason and the supported values', () => {
     try {
       validateAgainst(request({ aspectRatio: '8:1' }), model.id, model)
@@ -57,7 +57,7 @@ describe('capability validation (§6.3)', () => {
     }).not.toThrow()
   })
 
-  it('does not reject a model that is merely unlisted (§7.3)', () => {
+  it('does not reject a model that is merely unlisted', () => {
     // A wrong rejection is worse than no opinion: it is a confident error the
     // user believes. With nothing known about the model there is nothing to
     // check, so the request goes to the provider.
@@ -72,7 +72,7 @@ describe('capability validation (§6.3)', () => {
   })
 })
 
-describe('validation happens before any network call (§12.1)', () => {
+describe('validation happens before any network call', () => {
   it('fails an unsupported shape without loading a client or reading a key', async () => {
     const apiKey = vi.fn(() => undefined)
     const config: ResolvedConfig = {
@@ -91,7 +91,7 @@ describe('validation happens before any network call (§12.1)', () => {
     ).rejects.toMatchObject({ code: ERROR_CODE.VALIDATION_ERROR })
 
     // A key lookup here would mean the shape check ran too late to be the
-    // guard §6.3 asks for.
+    // guard it is meant to be.
     expect(apiKey).not.toHaveBeenCalled()
   })
 })

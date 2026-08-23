@@ -8,8 +8,8 @@
  * catches it.
  *
  * Commander's own process handling is overridden throughout: it exits with 1
- * on a usage error and prints its own text, whereas §4.3 fixes usage errors at
- * 2 and §4.2 says a `--json` caller gets one object even when the arguments
+ * on a usage error and prints its own text, whereas a usage error is fixed at
+ * 2 here, and a `--json` caller gets one object even when the arguments
  * were the problem.
  */
 
@@ -93,7 +93,7 @@ run it yourself.`,
  * `exitOverride` is set; both are successful outcomes, not failures.
  */
 export async function runProgram(argv: string[]): Promise<ExitCode> {
-  // Deliberate deviation from §4.1, which says the binary with no subcommand
+  // Deliberate deviation from the specification, which said the binary with no subcommand
   // must run the MCP server "because that is how MCP hosts spawn it".
   //
   // Hosts spawn whatever `args` their configuration names, so nothing actually

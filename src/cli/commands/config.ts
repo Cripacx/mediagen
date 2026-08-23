@@ -1,7 +1,7 @@
 /**
- * `mediagen config` — the only command that writes the config file (§4.4).
+ * `mediagen config` — the only command that writes the config file.
  *
- * Spec §3.1's provenance requirement earns its keep here: `list` and `get`
+ * The layered resolver's provenance earns its keep here: `list` and `get`
  * show every value with the layer that produced it and warn when a lower layer
  * is being shadowed. A stale environment variable hiding the key someone just
  * configured is the most expensive failure this tool has, and it is invisible
@@ -125,7 +125,7 @@ async function runSet(args: string[], fromStdin: boolean, json: boolean): Promis
   }
 
   // A bare provider id means "store this provider's API key", which is the
-  // one case that must never read its value from the argument list (§3.5).
+  // one case that must never read its value from the argument list.
   const provider = findProvider(key)
   if (provider) {
     return await setApiKey(provider.id, fromStdin, json)
@@ -199,7 +199,7 @@ async function setApiKey(providerId: string, fromStdin: boolean, json: boolean):
     )
   }
 
-  // §3.5 — verified with one minimal live request before it is stored, so a
+  // Verified with one minimal live request before it is stored, so a
   // typo surfaces here rather than at first use.
   if (!json) writeDiagnostic(`Verifying the ${provider.label} key…`)
   const verification = await verifyKey(provider, key)
@@ -215,7 +215,7 @@ async function setApiKey(providerId: string, fromStdin: boolean, json: boolean):
   const file = readConfigFile()
   const path = writeConfigFile({ ...file, apiKeys: { ...file.apiKeys, [provider.id]: key } })
 
-  // §3.3 — a key stored in the file is still shadowed by an environment
+  // A key stored in the file is still shadowed by an environment
   // variable, and saying nothing here is how someone loses an afternoon.
   const shadowing = shadowedBy(provider.credential.envVar)
 

@@ -1,7 +1,7 @@
 /**
  * What a provider must supply, and nothing about how it supplies it.
  *
- * Spec §6.1 requires two things of this file that shape every decision in it:
+ * Two things are required of this file, and they shape every decision in it:
  *
  * 1. Adding a provider means adding one directory. So this is an interface the
  *    provider implements, never a union the core switches on.
@@ -18,7 +18,7 @@
 import type { GenerationRequest, MediaKind, QualityPreset } from './media.js'
 
 /**
- * Spec §6.1. Deliberately data only: the env var name, a human description,
+ * Deliberately data only: the env var name, a human description,
  * and any cheap format check.
  */
 export interface ProviderCredential {
@@ -35,7 +35,7 @@ export interface ProviderCredential {
 /**
  * One entry in a provider's catalogue.
  *
- * Spec §7.3 — this drives defaults, error hints and `models` output. It is
+ * This drives defaults, error hints and `models` output. It is
  * explicitly not a gate: an id absent from here is still sent to the provider.
  *
  * Every constraint is optional and every list is of plain strings, not a
@@ -52,28 +52,28 @@ export interface ModelDescriptor {
   readonly sizes?: readonly string[]
   /** Accepted durations in seconds; video only. */
   readonly durations?: readonly number[]
-  /** Whether the model accepts input media (§6.4). */
+  /** Whether the model accepts input media. */
   readonly acceptsInputMedia?: boolean
   /** One line for `mediagen models`. */
   readonly note?: string
 }
 
-/** Media as the provider returned it, before the core saves or marks it (§8, §9). */
+/** Media as the provider returned it, before the core saves or marks it. */
 export interface GeneratedMedia {
   readonly data: Uint8Array
   readonly mimeType: string
   /** Where the provider rewrote the prompt and says so. */
   readonly revisedPrompt?: string
-  /** Provider-side identifier, useful for support and for §10 resumability. */
+  /** Provider-side identifier, useful for support and for resuming a job later. */
   readonly requestId?: string
 }
 
 /** Everything a client needs that it must not resolve for itself. */
 export interface ClientOptions {
   readonly apiKey: string
-  /** Model already resolved through §7.1; the client never re-decides. */
+  /** Model already resolved by the pipeline; the client never re-decides. */
   readonly model: string
-  /** Diagnostics go to stderr and are never part of the output contract (§4.2). */
+  /** Diagnostics go to stderr and are never part of the output contract. */
   readonly log: Logger
   /** Aborts in-flight work when the caller gives up. */
   readonly signal?: AbortSignal
@@ -83,7 +83,7 @@ export interface Logger {
   debug(message: string): void
   info(message: string): void
   warn(message: string): void
-  /** Progress for long-running jobs; §10 requires this on stderr, never stdout. */
+  /** Progress for long-running jobs; always stderr, never stdout. */
   progress(message: string): void
 }
 
@@ -94,7 +94,7 @@ export interface GenerationClient {
 /**
  * One cheap authenticated request that proves a key works, or explicitly absent.
  *
- * This exists for §3.5 and §4.5: a key is verified before it is stored, and
+ * A key is verified before it is stored, and
  * `doctor` reports whether it still works. What counts as cheap is the
  * provider's decision — listing models costs nothing at one vendor, a
  * one-token completion is cheapest at another — so this returns nothing and
@@ -124,36 +124,36 @@ export interface ProviderManifest {
   /** Shown to people, e.g. "Google Gemini". */
   readonly label: string
   readonly credential: ProviderCredential
-  /** Spec §2.1 — which kinds this provider can produce. */
+  /** Which kinds this provider can produce. */
   readonly kinds: readonly MediaKind[]
 
   /**
-   * Spec §7.1 step 3. A provider may derive this from the quality preset; that
+   * A provider may derive this from the quality preset; that
    * is a provider-internal decision and does not leak into this interface.
    */
   defaultModel(kind: MediaKind, quality: QualityPreset): string
 
-  /** Spec §7.2 — what `mediagen models` lists. Not a gate (§7.3). */
+  /** What `mediagen models` lists. Not a gate. */
   listModels(kind: MediaKind): readonly ModelDescriptor[]
 
   /**
-   * Spec §6.3. Runs before any network call. Throws a `MediagenError` naming
+   * Runs before any network call. Throws a `MediagenError` naming
    * the reason and the supported values; never substitutes a different shape.
    *
    * An unlisted model is not a reason to fail: with nothing known about it,
-   * there is nothing to validate, and §7.3 says send it anyway.
+   * there is nothing to validate, and it is sent anyway.
    */
   validate(request: GenerationRequest, model: string): void
 
   /**
-   * Spec §6.1. Lazily loaded so importing the registry stays SDK-free.
+   * Lazily loaded so importing the registry stays SDK-free.
    * A kind absent from this map is a kind the provider cannot produce.
    */
   readonly clients: Readonly<Partial<Record<MediaKind, () => Promise<GenerationClientFactory>>>>
 
   /**
    * `null` where the provider offers no cheap authenticated request. Key
-   * verification then reports `unverifiable` (§4.5) rather than guessing.
+   * verification then reports `unverifiable` rather than guessing.
    */
   readonly probe: (() => Promise<Probe>) | null
 }

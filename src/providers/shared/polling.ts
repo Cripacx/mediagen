@@ -1,10 +1,10 @@
 /**
  * Polling for providers whose generation API is asynchronous.
  *
- * Spec §6.2 — these providers accept a job and return an identifier; the media
+ * These providers accept a job and return an identifier; the media
  * only exists once the job finishes. Every such adapter needs the same loop,
- * so it lives here rather than being rewritten per provider. §10 makes this
- * the normal path rather than the exception: video takes minutes.
+ * so it lives here rather than being rewritten per provider. Video makes this
+ * the normal path rather than the exception: it takes minutes.
  *
  * Four requirements shape the loop:
  *
@@ -34,7 +34,7 @@ export interface PollingOptions {
   readonly maxDelayMs?: number
   /** Multiplier applied to the delay after each check. */
   readonly backoffFactor?: number
-  /** Progress goes to stderr, never stdout (§4.2, §10). */
+  /** Progress goes to stderr, never stdout. */
   readonly log?: Logger
   /** What is being waited on, for the progress line. */
   readonly label?: string

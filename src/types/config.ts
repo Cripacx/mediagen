@@ -1,19 +1,19 @@
 /**
  * Resolved runtime configuration, and the provenance that comes with it.
  *
- * Spec §3.1 requires every lookup to report which layer answered. That is not
+ * Every lookup reports which layer answered. That is not
  * cosmetic: a stale environment variable shadowing a freshly configured key is
  * the single most expensive failure this tool has, and it is invisible unless
  * the resolver carries the layer alongside the value.
  *
  * Nothing here names a provider. The old shape had one field per provider
  * (`geminiApiKey`, `openaiApiKey`, …), which makes adding a provider an edit
- * in six places — exactly what §6.1 forbids.
+ * in six places, which is exactly what the provider contract exists to avoid.
  */
 
 import type { QualityPreset } from './media.js'
 
-/** Highest priority first, matching §3.1. */
+/** Highest priority first. */
 export const CONFIG_LAYERS = ['environment', 'dotenv', 'file', 'default'] as const
 export type ConfigLayer = (typeof CONFIG_LAYERS)[number]
 
@@ -23,12 +23,12 @@ export interface Resolved<T> {
   readonly layer: ConfigLayer
   /**
    * Layers that also hold a value but lost. `config list` warns about these so
-   * a shadowed key is visible rather than merely puzzling (§4.4).
+   * a shadowed key is visible rather than merely puzzling.
    */
   readonly shadowed: readonly ConfigLayer[]
 }
 
-/** The shape written to the config file (§3.4). All fields optional by design. */
+/** The shape written to the config file. All fields optional by design. */
 export interface ConfigFile {
   defaultProvider?: string
   /** Keyed by provider id. */
@@ -44,7 +44,7 @@ export interface ResolvedConfig {
   readonly defaultProvider: Resolved<string>
   readonly outputDir: Resolved<string>
   readonly quality: Resolved<QualityPreset>
-  /** Spec §3.3 — resolved per provider, on use, never eagerly for all. */
+  /** Resolved per provider, on use, never eagerly for all. */
   apiKey(providerId: string): Resolved<string> | undefined
   model(providerId: string): Resolved<string> | undefined
 }

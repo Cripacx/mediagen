@@ -3,8 +3,8 @@
  * The binary entry point.
  *
  * Deliberately thin: it owns the process, and nothing else. Exit codes come
- * from the taxonomy (§4.3) and the last-resort handlers exist so that an
- * unexpected throw still leaves stdout obeying the contract in §4.2.
+ * from the taxonomy and the last-resort handlers exist so that an
+ * unexpected throw still leaves stdout obeying the output contract.
  */
 
 import { runProgram } from './cli/program.js'
@@ -34,4 +34,4 @@ process.on('uncaughtException', (error: unknown) => {
 
 // Nothing here calls process.exit(): a non-zero `process.exitCode` is honoured
 // on a clean exit, whereas exiting outright can truncate a pending stdout
-// write and cost the caller the JSON object §4.2 promises.
+// write and cost the caller the JSON object it promises.

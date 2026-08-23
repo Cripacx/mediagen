@@ -1,7 +1,7 @@
 /**
  * The provider registry.
  *
- * Spec §6.1 sets the acceptance criterion: adding a provider must mean adding
+ * The acceptance criterion: adding a provider must mean adding
  * one directory, not editing a switch statement in six places. The array below
  * is the single edit — one import and one entry — and every other consumer
  * reads providers through this module rather than naming them.
@@ -43,7 +43,7 @@ export const PROVIDER_IDS: readonly ProviderId[] = MANIFESTS.map((provider) => p
 export const PROVIDERS: readonly ProviderManifest[] = MANIFESTS
 
 /**
- * Spec §3.3 — the fallback when nothing is configured. `doctor` and the
+ * The fallback when nothing is configured. `doctor` and the
  * startup check report this provider's own error rather than a generic one.
  */
 export const BUILT_IN_DEFAULT_PROVIDER: ProviderId = 'gemini'
@@ -52,7 +52,7 @@ export function findProvider(id: string): ProviderManifest | undefined {
   return PROVIDERS.find((provider) => provider.id === id)
 }
 
-/** Spec §6.5 — an unknown provider is invalid input, and the hint lists the real ones. */
+/** An unknown provider is invalid input, and the hint lists the real ones. */
 export function requireProvider(id: string): ProviderManifest {
   const provider = findProvider(id)
   if (provider) return provider
@@ -62,7 +62,7 @@ export function requireProvider(id: string): ProviderManifest {
   })
 }
 
-/** Spec §2.1 — capability is data on the manifest, not a branch here. */
+/** Capability is data on the manifest, not a branch here. */
 export function providersFor(kind: MediaKind): readonly ProviderManifest[] {
   return PROVIDERS.filter((provider) => provider.kinds.includes(kind))
 }
@@ -86,7 +86,7 @@ export function requireKindSupport(provider: ProviderManifest, kind: MediaKind):
 /**
  * Loaded clients, keyed by provider *and* kind.
  *
- * Spec §12.1 asks for proof that alternating providers between requests does
+ * This needs proof that alternating providers between requests does
  * not reuse the wrong one. A single-slot cache is the natural mistake here and
  * it fails silently — the second request succeeds, against the wrong vendor.
  * The key is the pair, and `providerClients.test.ts` holds it to that.
@@ -119,7 +119,7 @@ export async function loadGenerationClient(
   return client
 }
 
-/** `undefined` where the provider offers no cheap request to verify a key with (§4.5). */
+/** `undefined` where the provider offers no cheap request to verify a key with. */
 export async function loadProbe(provider: ProviderManifest): Promise<Probe | undefined> {
   if (!provider.probe) return undefined
 

@@ -1,7 +1,7 @@
 /**
- * Layered resolution and its provenance (§3.1, §3.2, §3.3).
+ * Layered resolution and its provenance.
  *
- * The shadowing cases are the reason §3.1 exists at all: a value that resolves
+ * The shadowing cases are why provenance is tracked at all: a value that resolves
  * correctly but from an unexpected layer is the failure people lose hours to,
  * and it is invisible unless the resolver reports where the answer came from.
  */
@@ -21,7 +21,7 @@ function layers(overrides: Partial<ConfigLayers> = {}): ConfigLayers {
   return { env: {}, dotenv: {}, file: {}, dotenvPath: '/nowhere/.env', ...overrides }
 }
 
-describe('resolution order (§3.1)', () => {
+describe('resolution order', () => {
   it('prefers the environment over .env and the file', () => {
     const resolved = resolve(
       layers({ env: { A: 'from-env' }, dotenv: { A: 'from-dotenv' } }),
@@ -66,7 +66,7 @@ describe('resolution order (§3.1)', () => {
   })
 })
 
-describe('secret masking (§3.5)', () => {
+describe('secret masking', () => {
   it('shows enough to recognise a key and not enough to use it', () => {
     const masked = maskSecret('sk-abcdefghijklmnop')
 
@@ -79,7 +79,7 @@ describe('secret masking (§3.5)', () => {
   })
 })
 
-describe('the config file (§3.4)', () => {
+describe('the config file', () => {
   let home: string
 
   beforeEach(() => {
@@ -120,7 +120,7 @@ describe('the config file (§3.4)', () => {
   })
 })
 
-describe('credential validation timing (§3.3)', () => {
+describe('credential validation timing', () => {
   it('names the exact variable and the exact command when a key is missing', () => {
     const config = loadConfig(layers())
     const provider = PROVIDERS[0]!
@@ -164,7 +164,7 @@ describe('credential validation timing (§3.3)', () => {
   })
 })
 
-describe('settings resolution (§3.2)', () => {
+describe('settings resolution', () => {
   it('derives the model variable per provider rather than listing them', () => {
     expect(modelEnvVar('gemini')).toBe('GEMINI_MODEL')
     expect(modelEnvVar('kie')).toBe('KIE_MODEL')

@@ -1,7 +1,7 @@
 /**
  * Kie AI image generation.
  *
- * The first asynchronous provider here, and the one §6.2's shared polling loop
+ * The first asynchronous provider here, and the one the shared polling loop
  * was written for: create a task, poll until it finishes, download the result.
  *
  * Three things this file is careful about:
@@ -12,7 +12,7 @@
  *   are recognised from the failure text and mapped to CONTENT_BLOCKED rather
  *   than reading to the user as a network problem.
  * - **Input media.** Kie takes URLs, not inline data, so a local file is
- *   uploaded to Kie's own store first and referenced (§6.4). The field name
+ *   uploaded to Kie's own store first and referenced. The field name
  *   and whether it takes an array both vary per model, which is why the
  *   generated descriptors exist.
  */
@@ -37,7 +37,7 @@ import type { GenerationClient, GenerationClientFactory } from '../../types/prov
 const TERMINAL_SUCCESS = 'success'
 const TERMINAL_FAILURE = 'fail'
 
-/** Bound on the downloaded image, matching the input limit elsewhere (§8). */
+/** Bound on the downloaded image, matching the input limit elsewhere. */
 const MAX_DOWNLOAD_BYTES = 32 * 1024 * 1024
 
 export const createImageClient: GenerationClientFactory = (): GenerationClient => ({
@@ -92,7 +92,7 @@ export const createImageClient: GenerationClientFactory = (): GenerationClient =
           'status check',
         )
 
-        // Finished-and-failed is still finished (§6.2): throwing here ends the
+        // Finished-and-failed is still finished: throwing here ends the
         // loop rather than waiting out the timeout on a dead job.
         if (status.state === TERMINAL_FAILURE) {
           throw failureError(status)
@@ -127,7 +127,7 @@ export const createImageClient: GenerationClientFactory = (): GenerationClient =
 
 /**
  * Kie reports a content block as an ordinary job failure, so it has to be
- * recognised from the text. §6.2 requires it not to read as a network error.
+ * recognised from the text, so that it does not read as a network error.
  */
 function failureError(status: RecordInfoData): MediagenError {
   const detail = [status.failCode, status.failMsg].filter(Boolean).join(': ')
@@ -218,7 +218,7 @@ async function upload(
 }
 
 /**
- * Spec §8 — the limit is enforced from the declared length before the body is
+ * The limit is enforced from the declared length before the body is
  * read, so an oversized response is refused rather than buffered and then
  * rejected.
  */

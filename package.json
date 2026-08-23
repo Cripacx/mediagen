@@ -1,6 +1,6 @@
 {
   "name": "mediagen",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An image and video generation skill for coding agents, across Gemini, OpenAI and Kie AI. Also usable as a CLI and an MCP server.",
   "type": "module",
   "engines": {

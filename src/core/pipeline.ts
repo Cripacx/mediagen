@@ -106,7 +106,13 @@ export async function generate(
   if (machineReadable || visibleLabel) {
     const marking = await markFile(
       saved.filePath,
-      { machineReadable, visibleLabel },
+      {
+        machineReadable,
+        visibleLabel,
+        // The Commission separates media a model made outright from human
+        // media a model altered. The request already says which this is.
+        labelKind: request.inputMedia === undefined ? 'generated' : 'modified',
+      },
       { provider: provider.id, model },
     )
 

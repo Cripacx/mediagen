@@ -170,7 +170,7 @@ independent switches:
 | Flag              | Duty                     | What it does                                           |
 | ----------------- | ------------------------ | ------------------------------------------------------ |
 | `--mark`          | make it machine-readable | writes IPTC/XMP `DigitalSourceType`, changes no pixels |
-| `--visible-label` | disclose it to people    | composites a visible label into the image              |
+| `--visible-label` | disclose it to people    | composites the EU's official AI-content label          |
 
 Both default to off; the skill suggests `--mark` for photorealistic or
 published output. To turn either on for every generation, set it once:
@@ -181,6 +181,15 @@ npx -y mediagen config edit      # "AI marking by default"
 
 A configured default is still overridable per command with `--no-mark` or
 `--no-visible-label`.
+
+The visible label is the European Commission's own icon, published with the
+Code of Practice on Transparency of AI-generated Content and free to use
+without attribution. Two of its three variants are used, chosen automatically:
+**AI GENERATED** when the media came from a prompt alone, **AI MODIFIED** when
+you supplied media and a model altered it. The light or dark version is picked
+from what is actually under the corner it lands in, because a label nobody can
+read is not a disclosure. `mediagen mark` takes `--modified` to state the
+second claim for a file it cannot infer it from.
 
 `mediagen mark <file…>` applies them to media that already exists, in place.
 Existing provider metadata is never overwritten, and a second pass does not

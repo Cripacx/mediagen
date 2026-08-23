@@ -119,8 +119,10 @@ platforms read, costs nothing, and changes no pixels. In the EU it is a legal
 duty for the provider of synthetic content.
 
 `--visible-label` is the separate duty — disclosure to people who see the
-image. Suggest it when the image will be shown to an audience who might
-otherwise take it for a photograph.
+image. It composites the European Commission's official AI-content icon, and
+picks the right variant on its own: "AI GENERATED" for a prompt-only image,
+"AI MODIFIED" when `--input` was used. Suggest it when the image will be shown
+to an audience who might otherwise take it for a photograph.
 
 `npx -y mediagen mark <file...>` applies both to media that already exists.
 

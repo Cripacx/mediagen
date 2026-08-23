@@ -24,15 +24,43 @@ afterEach(() => {
 })
 
 /** A small real PNG, since sharp has to be able to decode it. */
-async function makePng(name = 'image.png'): Promise<string> {
+async function makePng(name = 'image.png', width = 64, height = 64): Promise<string> {
   const filePath = path.join(directory, name)
   const data = await sharp({
-    create: { width: 64, height: 64, channels: 3, background: { r: 20, g: 90, b: 160 } },
+    create: { width, height, channels: 3, background: { r: 20, g: 90, b: 160 } },
   })
     .png()
     .toBuffer()
   writeFileSync(filePath, data)
   return filePath
+}
+
+async function makeSolid(
+  name: string,
+  background: { r: number; g: number; b: number },
+): Promise<string> {
+  const filePath = path.join(directory, name)
+  const data = await sharp({ create: { width: 600, height: 300, channels: 3, background } })
+    .png()
+    .toBuffer()
+  writeFileSync(filePath, data)
+  return filePath
+}
+
+/**
+ * Counts pixels whose red channel matches, read from raw data.
+ *
+ * `stats()` reports differently once an image carries an alpha channel, which
+ * compositing adds, so the raw buffer is the honest measure here.
+ */
+async function countPixels(filePath: string, matches: (value: number) => boolean): Promise<number> {
+  const { data, info } = await sharp(filePath).raw().toBuffer({ resolveWithObject: true })
+
+  let count = 0
+  for (let index = 0; index < data.length; index += info.channels) {
+    if (matches(data[index]!)) count += 1
+  }
+  return count
 }
 
 async function xmpOf(filePath: string): Promise<string | undefined> {
@@ -127,6 +155,61 @@ describe('the visible label', () => {
 
     const after = await sharp(file).raw().toBuffer()
     expect(Buffer.compare(before, after)).not.toBe(0)
+  })
+
+  it('fits on an image far smaller than the label is wide', async () => {
+    // sharp refuses to composite something larger than its canvas, so an
+    // unclamped label turns a request for a disclosure into an error.
+    const tiny = await makePng('tiny.png', 40, 24)
+
+    await expect(
+      markFile(tiny, { machineReadable: false, visibleLabel: true }),
+    ).resolves.toMatchObject({ visibleLabelWritten: true })
+
+    const after = await sharp(tiny).metadata()
+    expect(after.width).toBe(40)
+    expect(after.height).toBe(24)
+  })
+
+  it('leaves the image its original size', async () => {
+    const file = await makePng('sized.png', 800, 400)
+
+    await markFile(file, { machineReadable: false, visibleLabel: true })
+
+    const after = await sharp(file).metadata()
+    expect(after.width).toBe(800)
+    expect(after.height).toBe(400)
+  })
+
+  it('picks the light badge on a dark image and the dark badge on a light one', async () => {
+    // The Commission ships both because neither is legible everywhere. The
+    // proof is that the label contrasts with whatever it was placed on.
+    const dark = await makeSolid('dark.png', { r: 8, g: 8, b: 10 })
+    const light = await makeSolid('light.png', { r: 245, g: 245, b: 240 })
+
+    await markFile(dark, { machineReadable: false, visibleLabel: true })
+    await markFile(light, { machineReadable: false, visibleLabel: true })
+
+    expect(await countPixels(dark, (value) => value > 150)).toBeGreaterThan(500)
+    expect(await countPixels(light, (value) => value < 100)).toBeGreaterThan(500)
+  })
+
+  it('uses the modified label when asked', async () => {
+    // The two badges differ in width, which is the cheapest observable proof
+    // that a different one was drawn.
+    const generated = await makeSolid('gen.png', { r: 250, g: 250, b: 250 })
+    const modified = await makeSolid('mod.png', { r: 250, g: 250, b: 250 })
+
+    await markFile(generated, { machineReadable: false, visibleLabel: true })
+    await markFile(modified, {
+      machineReadable: false,
+      visibleLabel: true,
+      labelKind: 'modified',
+    })
+
+    const a = await sharp(generated).raw().toBuffer()
+    const b = await sharp(modified).raw().toBuffer()
+    expect(Buffer.compare(a, b)).not.toBe(0)
   })
 
   it('is independent of the machine-readable marker', async () => {

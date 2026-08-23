@@ -11,6 +11,7 @@ import { reportError, writeJson, writeLine, type Outcome } from '../output.js'
 interface MarkOptions {
   visibleLabel?: boolean
   noMark?: boolean
+  modified?: boolean
   model?: string
   provider?: string
   json?: boolean
@@ -21,6 +22,7 @@ export function buildMarkCommand(outcome: Outcome): Command {
     .description('Mark existing media as AI-generated, in place')
     .argument('<file...>', 'files to mark')
     .option('--visible-label', 'composite a visible AI disclosure into the media')
+    .option('--modified', 'label it as human media a model altered, not media a model made')
     .option('--no-mark', 'skip the machine-readable marker (use with --visible-label)')
     .option('--provider <name>', 'record which provider produced it')
     .option('--model <id>', 'record which model produced it')
@@ -31,7 +33,10 @@ export function buildMarkCommand(outcome: Outcome): Command {
       `
 The machine-readable marker is the IPTC/XMP DigitalSourceType that platforms
 read. It is written by default here, because marking is the whole point of the
-command; --visible-label adds a disclosure people can see.
+command; --visible-label composites the European Commission's official label.
+
+That label comes in two forms. By default it claims the media was generated
+outright; --modified claims a model altered media a person made.
 
 A file that already declares a digital source type is left as it is and
 reported, rather than having whatever the provider recorded overwritten.
@@ -55,7 +60,11 @@ a test-signed manifest would look like provenance while carrying none.`,
           results.push(
             await markFile(
               file,
-              { machineReadable, visibleLabel: options.visibleLabel === true },
+              {
+                machineReadable,
+                visibleLabel: options.visibleLabel === true,
+                labelKind: options.modified === true ? 'modified' : 'generated',
+              },
               {
                 ...(options.provider === undefined ? {} : { provider: options.provider }),
                 ...(options.model === undefined ? {} : { model: options.model }),

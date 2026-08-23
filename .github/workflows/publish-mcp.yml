@@ -1,0 +1,75 @@
+name: Publish to the MCP registry
+
+# The registry step of a release, on its own.
+#
+# It exists because that step can fail for reasons that have nothing to do
+# with the package: a namespace the account is not entitled to, a registry
+# outage, an expired entitlement. When it does, npm and the tag are already
+# done, and the only other way to reach the registry would be to cut a version
+# nobody needs.
+#
+# The registry stores metadata pointing at an npm version, so it publishes
+# whatever `server.json` currently names — which must already be on npm.
+on:
+  workflow_dispatch:
+
+concurrency:
+  # Shares a group with `release.yml`, which ends with this same step.
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # OIDC is how the registry establishes which namespace this repository
+      # may publish under. No stored token.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The version in server.json has to agree with package.json, and the
+      # namespace has to match the owner whose identity OIDC will present.
+      # Both are asserted by the packaging tests, which is cheaper than
+      # learning it from a 403.
+      - name: Check the manifest
+        run: |
+          node scripts/set-version.mjs --check
+          npx vitest run src/cli/__tests__/packaging.test.ts
+
+      - name: Refuse to register a version npm does not have
+        run: |
+          VERSION="$(node -p 'require("./package.json").version')"
+          if ! npm view "mediagen@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::mediagen@$VERSION is not on npm. The registry would point at something nobody can install."
+            exit 1
+          fi
+          echo "Registering mediagen@$VERSION"
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Publish
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+
+      - name: Summarise
+        run: |
+          {
+            echo "### Registered $(node -p 'require("./server.json").name')"
+            echo
+            echo "Version $(node -p 'require("./package.json").version')."
+          } >> "$GITHUB_STEP_SUMMARY"

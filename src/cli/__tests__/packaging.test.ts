@@ -95,8 +95,21 @@ describe('the MCP registry manifest', () => {
     expect(pkg.mcpName).toBe(server.name)
   })
 
-  it('follows the reverse-DNS naming convention for GitHub auth', () => {
-    expect(server.name).toMatch(/^io\.github\.[a-z0-9-]+\/[a-z0-9-]+$/)
+  it('namespaces itself under the GitHub owner, matching its case exactly', () => {
+    // The registry authenticates by GitHub identity and grants exactly one
+    // namespace: `io.github.<login>/*`, compared case-sensitively. A lowercase
+    // spelling of a login that is not lowercase is refused with a 403 at
+    // publish time — after npm has been published and the tag pushed, which
+    // leaves a release half done.
+    //
+    // Derived from the repository URL rather than written out, so it cannot
+    // drift from the account that owns the namespace. The test this replaced
+    // asserted /[a-z0-9-]+/, which enforced the broken spelling rather than
+    // catching it.
+    const owner = /github\.com\/([^/]+)\//.exec(pkg.repository?.url ?? '')?.[1]
+
+    expect(owner, 'repository.url must name the owner').toBeDefined()
+    expect(server.name).toBe(`io.github.${owner!}/${pkg.name}`)
   })
 
   it('declares stdio, which is what the binary starts with no subcommand', () => {

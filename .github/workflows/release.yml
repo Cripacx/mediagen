@@ -88,7 +88,7 @@ jobs:
             echo "Would release **${{ steps.version.outputs.version }}** as \`${{ steps.version.outputs.tag }}\`:"
             echo
             echo "- npm package \`mediagen\`"
-            echo "- MCP registry entry \`io.github.cripacx/mediagen\`"
+            echo "- MCP registry entry \`io.github.Cripacx/mediagen\`"
             echo "- a GitHub Release with generated notes"
           } >> "$GITHUB_STEP_SUMMARY"
           git --no-pager diff --stat
@@ -111,6 +111,24 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: npm publish --access public
 
+      # Before the registry, not after. A release documents the tag and the npm
+      # package, and both now exist — nothing about it points at the registry.
+      # Gating it on the registry step is what left 0.2.0 published to npm and
+      # tagged, with no release to show for it, when that step failed.
+      - name: Create the GitHub Release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ steps.version.outputs.tag }}' \
+            --title '${{ steps.version.outputs.version }}' \
+            --generate-notes \
+            --verify-tag
+
+      # Last, because it is the only step that is safely re-runnable on its
+      # own: `publish-mcp.yml` does exactly this against whatever is already on
+      # npm. A failure here is worth failing the job for, but it costs a
+      # re-run of one workflow rather than a whole release.
       - name: Install mcp-publisher
         if: ${{ !inputs.dry_run }}
         run: |
@@ -121,17 +139,6 @@ jobs:
         run: |
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
-
-      # Last, so a release only exists once the things it points at do.
-      - name: Create the GitHub Release
-        if: ${{ !inputs.dry_run }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create '${{ steps.version.outputs.tag }}' \
-            --title '${{ steps.version.outputs.version }}' \
-            --generate-notes \
-            --verify-tag
 
       - name: Summarise
         if: ${{ !inputs.dry_run }}

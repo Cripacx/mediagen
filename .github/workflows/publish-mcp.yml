@@ -43,10 +43,15 @@ jobs:
       # namespace has to match the owner whose identity OIDC will present.
       # Both are asserted by the packaging tests, which is cheaper than
       # learning it from a 403.
+      #
+      # Through `npm test`, not `npx vitest`: `pretest` builds, and part of
+      # what these tests check is that `package.json` points its binary at a
+      # file the build produces. Reaching past the hook fails on a clean
+      # checkout for a reason that has nothing to do with the manifest.
       - name: Check the manifest
         run: |
           node scripts/set-version.mjs --check
-          npx vitest run src/cli/__tests__/packaging.test.ts
+          npm test -- src/cli/__tests__/packaging.test.ts
 
       - name: Refuse to register a version npm does not have
         run: |

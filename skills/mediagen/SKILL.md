@@ -111,6 +111,10 @@ Read it in this order:
    when more than one usable provider fits. Their order beats the guidance in
    the table below.
 4. **`listed`** per provider — the models, with their capabilities.
+5. **`source`** per provider — where its `effectiveModel` came from. `"configuration"`
+   means the user chose that model for that provider deliberately. Leave it
+   alone unless the task actually needs a different one, and say so when you
+   override it.
 
 If nothing is usable, `wouldUse` is `null` and `usableProviders` is empty. Do
 not generate: tell the user, and pass on the `fix` command for whichever
@@ -119,6 +123,29 @@ provider suits the task.
 Mention an unconfigured provider only when it would genuinely have been the
 better choice — "OpenAI would suit this, but has no key; `mediagen config set
 openai` adds one". Do not list every missing key on every run.
+
+### Preferences are settings, not something to repeat
+
+When the user states a lasting preference rather than a one-off, offer to
+store it. The difference is "use gemini-3-pro-image for this" against "always
+use gemini-3-pro-image" — the second is a setting, and passing `--model` on
+every future call instead is how it gets forgotten.
+
+```bash
+# Which model this provider uses when none is named
+npx -y mediagen config set gemini-model gemini-3-pro-image
+
+# Which providers to prefer, best first
+npx -y mediagen config set provider-priority kie,gemini,openai
+```
+
+`config set <provider>-model` takes any id, including one not in `listed` — a
+newly released model is settable before this skill knows it exists. Clear it
+again with `npx -y mediagen config unset gemini-model`, which returns that
+provider to its own default.
+
+Offer this; do not do it unasked. It changes what every future run does,
+including runs that have nothing to do with the current task.
 
 ### What each provider is good at
 

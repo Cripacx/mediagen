@@ -20,10 +20,10 @@ import { ERROR_CODE, MediagenError } from '../../core/errors.js'
 import { loadInputMedia } from '../../core/inputMedia.js'
 import { pollUntilDone, type PollingOptions } from '../shared/polling.js'
 import {
-  CREATE_TASK_PATH,
-  RECORD_INFO_PATH,
+  CREATE_TASK_URL,
+  RECORD_INFO_URL,
   UPLOAD_DIRECTORY,
-  UPLOAD_PATH,
+  UPLOAD_URL,
   kieRequest,
   type CreateTaskData,
   type RecordInfoData,
@@ -59,7 +59,7 @@ export async function runTask(
   options.log.debug(`kie: creating task for ${modelId}`)
 
   const created = await kieRequest<CreateTaskData>(
-    CREATE_TASK_PATH,
+    CREATE_TASK_URL,
     options.apiKey,
     { method: 'POST', body: { model: modelId, input }, ...signal },
     'task creation',
@@ -75,7 +75,7 @@ export async function runTask(
   const resultUrl = await pollUntilDone(
     async () => {
       const status = await kieRequest<RecordInfoData>(
-        `${RECORD_INFO_PATH}?taskId=${encodeURIComponent(taskId)}`,
+        `${RECORD_INFO_URL}?taskId=${encodeURIComponent(taskId)}`,
         options.apiKey,
         { method: 'GET', ...signal },
         'status check',
@@ -168,7 +168,7 @@ export async function uploadInputImage(
   const extension = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/webp' ? 'webp' : 'png'
 
   const result = await kieRequest<UploadData>(
-    UPLOAD_PATH,
+    UPLOAD_URL,
     apiKey,
     {
       method: 'POST',

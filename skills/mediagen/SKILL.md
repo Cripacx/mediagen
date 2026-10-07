@@ -32,7 +32,7 @@ If you have no shell at all, the same pipeline is available over MCP as the
 it — a host spawns it with `npx -y mediagen mcp`. The CLI is the primary path;
 MCP is the fallback.
 
-Video takes minutes and only Gemini does it. Progress goes to stderr; the one
+Video takes minutes; Gemini and Kie generate it. Progress goes to stderr; the one
 JSON object still lands on stdout at the end.
 
 ## Write the prompt yourself
@@ -158,8 +158,9 @@ priority order when both fit.
 | Complex instructions, many elements | `gemini` with `--model gemini-3-pro-image`                    | Reasons about the prompt before generating; slower                       |
 | Speed and volume                    | `gemini` (default model) or `openai --model gpt-image-1-mini` |                                                                          |
 | Strong instruction following        | `openai --model gpt-image-1.5` or `gpt-image-2`               |                                                                          |
-| A specific third-party model        | `kie`                                                         | Aggregates ~30 models: Flux, Imagen, Seedream, Grok and others           |
-| Video                               | `gemini`                                                      | The only provider here that generates video; 16:9 and 9:16 only          |
+| A specific third-party model        | `kie`                                                         | Aggregates ~35 image models: Flux, Imagen, Seedream, Grok and others     |
+| Video                               | `gemini`                                                      | 16:9 and 9:16 only                                                       |
+| A specific video model, more ratios | `kie`                                                         | ~35 video models: Seedance, Kling, Wan, Hailuo, Grok and others          |
 
 **OpenAI takes pixel sizes, not aspect ratios.** It can do 1:1, 3:2 and 2:3
 only. It genuinely cannot do 16:9 — asking for one is rejected rather than
@@ -310,7 +311,7 @@ npx -y mediagen image "A red steel bicycle leaning against a wet brick wall, see
 npx -y mediagen image "..." --aspect-ratio 21:9 --size 2K --json
 npx -y mediagen mark ./output/image-….png --visible-label --label-position top-left --json
 
-# Video: slow, and Gemini only.
+# Video: slow; Gemini or Kie.
 npx -y mediagen video "A marble rolling fast down a wooden track, continuous smooth
   shot following it from the side, warm afternoon light" --duration 6 --json
 

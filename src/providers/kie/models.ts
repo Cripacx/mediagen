@@ -19,8 +19,8 @@
  * the constraints Kie documents in prose rather than in the schema.
  */
 
-import { GENERATED_KIE_MODELS } from './models.generated.js'
-import type { KieModelShape } from './modelShape.js'
+import { GENERATED_KIE_MODELS, GENERATED_KIE_VIDEO_MODELS } from './models.generated.js'
+import type { KieModelShape, KieVideoModelShape, KieVideoRoute } from './modelShape.js'
 import type { ModelDescriptor } from '../../types/provider.js'
 import type { QualityPreset } from '../../types/media.js'
 
@@ -109,5 +109,71 @@ export function defaultImageModel(_quality: QualityPreset): string {
 export function suggestedKieModels(): string {
   return ['nano-banana-2', 'nano-banana-pro', 'gpt-image-2']
     .filter((name) => LISTED_KIE_MODELS.includes(name))
+    .join(', ')
+}
+
+/**
+ * Seedance 2 serves text-to-video and image-to-video under one id, with ratios
+ * and resolutions for both, so every flag `mediagen video` offers maps onto it.
+ */
+export const DEFAULT_KIE_VIDEO_MODEL = 'bytedance/seedance-2'
+
+export const LISTED_KIE_VIDEO_MODELS = Object.keys(GENERATED_KIE_VIDEO_MODELS)
+
+/** The video descriptor for a model, or undefined when it is not in the generated table. */
+export function getKieVideoModel(name: string): KieVideoModelShape | undefined {
+  return (GENERATED_KIE_VIDEO_MODELS as Record<string, KieVideoModelShape | undefined>)[name]
+}
+
+/**
+ * The route used for a video model absent from the generated table: the prompt
+ * alone, because neither the field names nor their types can be guessed.
+ */
+export function passthroughVideoRoute(name: string): KieVideoRoute {
+  return { model: name }
+}
+
+/**
+ * One route in the shared vocabulary. Listing describes the text-to-video
+ * route where there is one, since that is what a request without --input uses.
+ */
+export function toVideoDescriptor(
+  name: string,
+  route: KieVideoRoute,
+  acceptsInputMedia: boolean,
+): ModelDescriptor {
+  return {
+    id: name,
+    kind: 'video',
+    ...(route.aspectRatios?.length ? { aspectRatios: route.aspectRatios } : {}),
+    ...(route.resolutions?.length ? { sizes: route.resolutions } : {}),
+    ...(route.durations?.length ? { durations: route.durations } : {}),
+    acceptsInputMedia,
+  }
+}
+
+/** What `mediagen models --kind video` lists for Kie. */
+export function listKieVideoModels(): readonly ModelDescriptor[] {
+  return LISTED_KIE_VIDEO_MODELS.map((name) => {
+    const model = getKieVideoModel(name)!
+    const descriptor = toVideoDescriptor(
+      name,
+      (model.textToVideo ?? model.imageToVideo)!,
+      model.imageToVideo !== undefined,
+    )
+    return model.textToVideo
+      ? descriptor
+      : { ...descriptor, note: 'Image-to-video only; needs --input.' }
+  })
+}
+
+export function defaultVideoModel(_quality: QualityPreset): string {
+  return DEFAULT_KIE_VIDEO_MODEL
+}
+
+/** A short, stable list of video models for error messages. */
+export function suggestedKieVideoModels(): string {
+  return [DEFAULT_KIE_VIDEO_MODEL, 'kling-2.6', 'wan/2-6']
+    .filter((name) => LISTED_KIE_VIDEO_MODELS.includes(name))
     .join(', ')
 }

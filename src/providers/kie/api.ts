@@ -3,13 +3,14 @@
  *
  * Kie has no SDK, so this is plain fetch. Its API is asynchronous throughout:
  *
- *   POST /api/v1/jobs/createTask     start a job, get a task id
- *   GET  /api/v1/jobs/recordInfo     ask whether it finished
- *   POST /api/file-base64-upload     stage a local input image
+ *   POST api.kie.ai/api/v1/jobs/createTask                start a job, get a task id
+ *   GET  api.kie.ai/api/v1/jobs/recordInfo                ask whether it finished
+ *   POST kieai.redpandaai.co/api/file-base64-upload       stage a local input image
  *
  * The upload step exists because Kie takes input images as URLs rather than
  * inline data, so a local file has to be put somewhere Kie can fetch it
- * before it can be referenced.
+ * before it can be referenced. Kie serves its file API from its own host;
+ * the same path on api.kie.ai answers 404.
  *
  * Kie answers with HTTP 200 and an error code in the body more often than with
  * an HTTP error, so the envelope's `code` is checked as carefully as the
@@ -20,9 +21,10 @@ import { ERROR_CODE, MediagenError } from '../../core/errors.js'
 import { command } from '../../core/invocation.js'
 
 const API_BASE = 'https://api.kie.ai'
-export const CREATE_TASK_PATH = '/api/v1/jobs/createTask'
-export const RECORD_INFO_PATH = '/api/v1/jobs/recordInfo'
-export const UPLOAD_PATH = '/api/file-base64-upload'
+const FILE_API_BASE = 'https://kieai.redpandaai.co'
+export const CREATE_TASK_URL = `${API_BASE}/api/v1/jobs/createTask`
+export const RECORD_INFO_URL = `${API_BASE}/api/v1/jobs/recordInfo`
+export const UPLOAD_URL = `${FILE_API_BASE}/api/file-base64-upload`
 
 /** Directory the staged input images are written to in Kie's file store. */
 export const UPLOAD_DIRECTORY = 'mediagen'
@@ -58,7 +60,7 @@ export interface RequestInit_ {
 }
 
 export async function kieRequest<T>(
-  path: string,
+  url: string,
   apiKey: string,
   init: RequestInit_,
   stage: string,
@@ -66,7 +68,7 @@ export async function kieRequest<T>(
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(url, {
     method: init.method,
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -114,9 +116,13 @@ function httpError(status: number, stage: string): MediagenError {
       hint: 'This is upstream; retry shortly.',
     })
   }
-  return new MediagenError(ERROR_CODE.API_ERROR, `Kie AI rejected the request (${status}).`, {
-    hint: 'Run again with --verbose to see the upstream detail.',
-  })
+  return new MediagenError(
+    ERROR_CODE.API_ERROR,
+    `Kie AI rejected the request (${status}) during ${stage}.`,
+    {
+      hint: 'Run again with --verbose to see the upstream detail.',
+    },
+  )
 }
 
 /**

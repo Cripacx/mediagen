@@ -21,7 +21,12 @@ import {
 } from '../providers/registry.js'
 import { preferredProvider, requireApiKey } from '../config/resolve.js'
 import { defaultStem, saveMedia } from './output.js'
-import type { GenerationRequest, GenerationResult, QualityPreset } from '../types/media.js'
+import type {
+  GenerationRequest,
+  GenerationResult,
+  MediaKind,
+  QualityPreset,
+} from '../types/media.js'
 import type { Logger, ProviderManifest } from '../types/provider.js'
 import type { ResolvedConfig } from '../types/config.js'
 
@@ -56,11 +61,24 @@ export function resolveModel(
   }
 
   const configured = config.model(provider.id)
-  if (configured) {
+  if (configured && !listedForAnotherKind(provider, configured.value, request.kind)) {
     return { model: configured.value, source: 'configuration' }
   }
 
   return { model: provider.defaultModel(request.kind, quality), source: 'provider default' }
+}
+
+/**
+ * A provider has one configured model but may make more than one kind. A
+ * model the provider lists under another kind was configured for that kind;
+ * applying it here would send an image model a video job. An unlisted id is
+ * still honoured, since nothing says which kind it is.
+ */
+function listedForAnotherKind(provider: ProviderManifest, model: string, kind: MediaKind): boolean {
+  return provider.kinds.some(
+    (other) =>
+      other !== kind && provider.listModels(other).some((descriptor) => descriptor.id === model),
+  )
 }
 
 export async function generate(

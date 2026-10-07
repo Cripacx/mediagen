@@ -121,7 +121,8 @@ function report(options: ModelsOptions): ExitCode {
       ...common,
       effectiveModel: model,
       source,
-      ...(configuredModel === undefined
+      // Only when it applies: a configured model of another kind was skipped.
+      ...(configuredModel === undefined || source !== 'configuration'
         ? {}
         : { configuredLayer: LAYER_LABEL[configuredModel.layer] }),
       listed: provider.listModels(kind),

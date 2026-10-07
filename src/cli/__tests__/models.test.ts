@@ -80,6 +80,22 @@ describe('models', () => {
     expect(payload.providers[0]?.configuredLayer).toBe('env')
   })
 
+  it('does not apply a configured image model to video', async () => {
+    // One model setting per provider; an image model id sent as a video job
+    // would only fail at the provider.
+    const { stdout } = await run(
+      process.execPath,
+      [BIN, 'models', '--provider', 'kie', '--kind', 'video', '--json'],
+      { env: { ...process.env, KIE_MODEL: 'nano-banana-2' } },
+    )
+
+    const payload = JSON.parse(stdout.trim()) as {
+      providers: Array<{ effectiveModel?: string; source?: string }>
+    }
+    expect(payload.providers[0]?.effectiveModel).not.toBe('nano-banana-2')
+    expect(payload.providers[0]?.source).toBe('provider default')
+  })
+
   it('limits to one provider on request', async () => {
     const { stdout } = await mediagen(['models', '--provider', 'openai', '--json'])
     const payload = JSON.parse(stdout.trim()) as { providers: Array<{ provider: string }> }
@@ -93,8 +109,8 @@ describe('models', () => {
     expect((await mediagen(['models', '--kind', 'audio'])).code).toBe(2)
   })
 
-  it('reports that no provider generates video yet, rather than hiding them', async () => {
-    const { stdout } = await mediagen(['models', '--kind', 'video'])
+  it('reports a provider that does not generate video, rather than hiding it', async () => {
+    const { stdout } = await mediagen(['models', '--kind', 'video', '--all'])
 
     expect(stdout).toContain('Does not generate video')
   })

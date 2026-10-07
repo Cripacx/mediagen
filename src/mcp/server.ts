@@ -197,7 +197,9 @@ export function buildServer(): McpServer {
             supportsKind: true,
             wouldUse: model,
             source,
-            ...(configured === undefined ? {} : { configuredLayer: LAYER_LABEL[configured.layer] }),
+            ...(configured === undefined || source !== 'configuration'
+              ? {}
+              : { configuredLayer: LAYER_LABEL[configured.layer] }),
             models: provider.listModels(kind).map((descriptor) => ({ ...descriptor })),
           }
         })

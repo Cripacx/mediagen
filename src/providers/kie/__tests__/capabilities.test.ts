@@ -7,9 +7,19 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { resolveKieRequest } from '../capabilities.js'
+import { resolveKieRequest, resolveKieVideoRequest } from '../capabilities.js'
 import { GENERATED_KIE_MODELS } from '../models.generated.js'
-import { DEFAULT_KIE_MODEL, LISTED_KIE_MODELS, getKieModel, listKieModels } from '../models.js'
+import {
+  DEFAULT_KIE_MODEL,
+  DEFAULT_KIE_VIDEO_MODEL,
+  LISTED_KIE_MODELS,
+  LISTED_KIE_VIDEO_MODELS,
+  getKieModel,
+  getKieVideoModel,
+  listKieModels,
+  listKieVideoModels,
+} from '../models.js'
+import type { KieVideoRoute } from '../modelShape.js'
 import { ERROR_CODE } from '../../../core/errors.js'
 import type { GenerationRequest } from '../../../types/media.js'
 
@@ -163,5 +173,162 @@ describe('prose-documented gaps', () => {
         request({ aspectRatio: gap.aspectRatio, size: gap.resolution }),
       ),
     ).toThrow(new RegExp(gap.reason))
+  })
+})
+
+function videoRequest(overrides: Partial<GenerationRequest> = {}): GenerationRequest {
+  return { prompt: 'a cat', kind: 'video', ...overrides }
+}
+
+/** The first listed video model whose chosen route satisfies the predicate. */
+function videoModelWhere(
+  route: 'textToVideo' | 'imageToVideo',
+  predicate: (candidate: KieVideoRoute) => boolean = () => true,
+): string | undefined {
+  return LISTED_KIE_VIDEO_MODELS.find((name) => {
+    const candidate = getKieVideoModel(name)?.[route]
+    return candidate !== undefined && predicate(candidate)
+  })
+}
+
+describe('the generated video table', () => {
+  it('lists the default video model, with both routes', () => {
+    const model = getKieVideoModel(DEFAULT_KIE_VIDEO_MODEL)
+
+    expect(model?.textToVideo).toBeDefined()
+    expect(model?.imageToVideo).toBeDefined()
+  })
+
+  it('gives every image-to-video route a starting-frame field', () => {
+    for (const name of LISTED_KIE_VIDEO_MODELS) {
+      const route = getKieVideoModel(name)?.imageToVideo
+      if (route) expect(route.imageInputField, name).toBeDefined()
+    }
+  })
+
+  it('describes every listed model as a video model', () => {
+    for (const descriptor of listKieVideoModels()) {
+      expect(descriptor.kind).toBe('video')
+    }
+  })
+})
+
+describe('video route selection', () => {
+  it('sends the text-to-video id without input media, and the image-to-video id with it', () => {
+    const name = LISTED_KIE_VIDEO_MODELS.find((candidate) => {
+      const model = getKieVideoModel(candidate)
+      return model?.textToVideo && model.imageToVideo && model.textToVideo !== model.imageToVideo
+    })!
+    const model = getKieVideoModel(name)!
+
+    expect(resolveKieVideoRequest(name, videoRequest()).route).toBe(model.textToVideo)
+    expect(resolveKieVideoRequest(name, videoRequest({ inputMedia: './a.png' })).route).toBe(
+      model.imageToVideo,
+    )
+  })
+
+  it('refuses a prompt alone for a model that only animates an image', () => {
+    const name = LISTED_KIE_VIDEO_MODELS.find(
+      (candidate) => getKieVideoModel(candidate)?.textToVideo === undefined,
+    )
+    if (!name) return
+
+    expect(() => resolveKieVideoRequest(name, videoRequest())).toThrow(/only animates/)
+  })
+
+  it('refuses input media for a model without an image-to-video route, in the shared wording', () => {
+    const name = LISTED_KIE_VIDEO_MODELS.find(
+      (candidate) => getKieVideoModel(candidate)?.imageToVideo === undefined,
+    )
+    if (!name) return
+
+    expect(() => resolveKieVideoRequest(name, videoRequest({ inputMedia: './a.png' }))).toThrow(
+      /cannot take input media/,
+    )
+  })
+})
+
+describe('video request bodies', () => {
+  it('spells the duration the way the route documents it', () => {
+    const asString = videoModelWhere(
+      'textToVideo',
+      (route) => route.durationType === 'string' && route.durations?.includes(5) === true,
+    )!
+    const asNumber = videoModelWhere(
+      'textToVideo',
+      (route) => route.durationType === 'number' && route.durations?.includes(5) === true,
+    )!
+
+    expect(resolveKieVideoRequest(asString, videoRequest({ duration: 5 })).input['duration']).toBe(
+      '5',
+    )
+    expect(resolveKieVideoRequest(asNumber, videoRequest({ duration: 5 })).input['duration']).toBe(
+      5,
+    )
+  })
+
+  it("uses the route's own field name for the resolution", () => {
+    const name = videoModelWhere(
+      'textToVideo',
+      (route) => route.resolutionField !== undefined && route.resolutionField !== 'resolution',
+    )
+    if (!name) return
+    const route = getKieVideoModel(name)!.textToVideo!
+    const size = route.resolutions![0]!
+
+    const { input } = resolveKieVideoRequest(name, videoRequest({ size }))
+
+    expect(input[route.resolutionField!]).toBe(size)
+    expect(input['resolution']).toBeUndefined()
+  })
+
+  it('sends documented defaults for required fields, and lets the request override them', () => {
+    const name = videoModelWhere(
+      'textToVideo',
+      (route) => route.defaults?.['duration'] !== undefined,
+    )!
+    const route = getKieVideoModel(name)!.textToVideo!
+    const other = route.durations!.find(
+      (value) => String(value) !== String(route.defaults!['duration']),
+    )!
+
+    expect(resolveKieVideoRequest(name, videoRequest()).input['duration']).toBe(
+      route.defaults!['duration'],
+    )
+    expect(
+      String(resolveKieVideoRequest(name, videoRequest({ duration: other })).input['duration']),
+    ).toBe(String(other))
+  })
+
+  it('rejects a duration the route lists constraints for but does not include', () => {
+    const name = videoModelWhere(
+      'textToVideo',
+      (route) => route.durations !== undefined && !route.durations.includes(999),
+    )!
+
+    expect(() => resolveKieVideoRequest(name, videoRequest({ duration: 999 }))).toThrow(
+      /does not support the duration 999/,
+    )
+  })
+})
+
+describe('unlisted video models', () => {
+  it('sends the prompt alone, because no field name can be guessed', () => {
+    const resolved = resolveKieVideoRequest(
+      'some/video-model-released-tomorrow',
+      videoRequest({ aspectRatio: '16:9', duration: 5 }),
+    )
+
+    expect(resolved.passthrough).toBe(true)
+    expect(resolved.input).toEqual({ prompt: 'a cat' })
+  })
+
+  it('refuses image-to-video, because the starting-frame field is unknown', () => {
+    expect(() =>
+      resolveKieVideoRequest(
+        'some/video-model-released-tomorrow',
+        videoRequest({ inputMedia: './a.png' }),
+      ),
+    ).toThrow(/starting-frame field is not known/)
   })
 })

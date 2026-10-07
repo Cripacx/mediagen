@@ -74,7 +74,7 @@ Now just ask your agent for an image.
   have
 - **Choose the right provider** for the task — the skill knows Gemini handles
   21:9 and video, that OpenAI cannot do 16:9 at all, and that Kie aggregates
-  around thirty third-party models
+  dozens of third-party image and video models
 - **Take your instructions literally when you give them.** Name a model, a
   ratio, a size or a filename and it is used as stated. `mediagen models` is
   there when you want to see what is available before choosing
@@ -96,7 +96,8 @@ terminal.
   - Google Gemini ([get one here](https://aistudio.google.com/apikey)) — images
     **and** video, widest range of shapes
   - OpenAI ([get one here](https://platform.openai.com/api-keys)) — images
-  - Kie AI ([get one here](https://kie.ai/api-key)) — ~30 third-party models
+  - Kie AI ([get one here](https://kie.ai/api-key)) — images **and** video,
+    ~70 third-party models (Seedream, Flux, Seedance, Kling, Wan, …)
 - Node.js 20.11 or later
 
 ## Configuration
@@ -186,11 +187,11 @@ directory, then the config file:
 
 ## Providers
 
-| Provider          | Images                         | Video | Editing | Key verification                 |
-| ----------------- | ------------------------------ | ----- | ------- | -------------------------------- |
-| **Google Gemini** | Nano Banana family, up to 4K   | yes   | yes     | live probe                       |
-| **OpenAI**        | gpt-image family, DALL·E       | —     | yes     | live probe                       |
-| **Kie AI**        | ~30 models: Flux, Imagen, Grok | —     | most    | no cheap probe; reported as such |
+| Provider          | Images                           | Video                            | Editing | Key verification                 |
+| ----------------- | -------------------------------- | -------------------------------- | ------- | -------------------------------- |
+| **Google Gemini** | Nano Banana family, up to 4K     | yes                              | yes     | live probe                       |
+| **OpenAI**        | gpt-image family, DALL·E         | —                                | yes     | live probe                       |
+| **Kie AI**        | ~35 models: Flux, Seedream, Grok | ~35 models: Seedance, Kling, Wan | most    | no cheap probe; reported as such |
 
 > [!NOTE]
 > OpenAI takes pixel dimensions rather than aspect ratios and genuinely cannot
